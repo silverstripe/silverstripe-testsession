@@ -29,16 +29,31 @@ The resulting configuration code needs to be placed in `mysite/_config.php`.
 
 ## Usage
 
- * `dev/testsession/start`: A test database will be constructed, and your
-	  browser session will be amended to use this database.
- * `dev/testsession/start?fixture=<fixturefile>`: Same as above, but also loads a YAML fixture
-   in the format generally accepted by `SapphireTest` (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). The path should be relative to the webroot.
- * `dev/testsession/end`: Removes the test state, and resets to the original database
- * `dev/testsession/setdb?database=<database-name>`: Set an alternative database name in the current 
-    browser session as a cookie. Does not actually create the database, 
-    that's usually handley by `SapphireTest::create_temp_db()`.
- * `dev/testsession/emptydb`: Empties the test state.
+You start a test session by manually requesting a certain URL,
+and interact with it through other URL endpoints.
 
-Note: The database names are limited to a specific naming convention as a security measure:
-The "ss_tmpdb" prefix and a random sequence of seven digits.
-This avoids the user gaining access to other production databases available on the same connection.
+Commands:
+
+ * `dev/testsession/start`: Sets up test state, most commonly a test database will be constructed, 
+    and your browser session will be amended to use this database. See "Parameters" documentation below.
+ * `dev/testsession/end`: Removes the test state, and resets to the original database.
+ * `dev/testsession/loadfixture?fixture=<path>`: Loads a fixture into an existing test state.
+ * `dev/testsession/clear`: Empties the test state.
+
+Parameters for "dev/testsession/start":
+
+ * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest` 
+   (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
+   The path should be relative to the webroot.
+ * `database`: Set an alternative database name in the current 
+    browser session as a cookie. Does not actually create the database, 
+    that's usually handled by `SapphireTest::create_temp_db()`.
+    Note: The database names are limited to a specific naming convention as a security measure:
+	  The "ss_tmpdb" prefix and a random sequence of seven digits.
+	  This avoids the user gaining access to other production databases available on the same connection.
+
+
+Example usage with parameters:
+
+	dev/testsession/start?database=ss_tmpdb_1234567&fixture=cms/tests/controller/CMSMainTest.yml
+

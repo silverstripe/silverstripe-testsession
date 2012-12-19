@@ -1,12 +1,15 @@
 <?php
+/**
+ * Requires PHP's mycrypt extension in order to set the database name as an encrypted cookie.
+ */
 class TestSessionController extends Controller {
 
 	static $allowed_actions = array(
 		'index',
 		'start',
+		'set',
 		'end',
-		'setdb',
-		'emptydb',
+		'clear',
 	);
 
 	public function init() {
@@ -18,153 +21,142 @@ class TestSessionController extends Controller {
 		);
 		if(!$canAccess) return Security::permissionFailure($this);
 	}
+
+	public function Link($action = null) {
+		return Controller::join_links(Director::baseUrl(), 'dev/testsession', $action);
+	}
 	
 	/**
 	 * Start a test session.
-	 * Usage: visit dev/testsession/start?fixture=(fixturefile).  A test database will be constructed, and your
-	 * browser session will be amended to use this database.  This can only be run on dev and test sites.
-	 *
-	 * See {@link setdb()} for an alternative approach which just sets a database
-	 * name, and is used for more advanced use cases like interacting with test databases
-	 * directly during functional tests.
-	 *
-	 * Requires PHP's mycrypt extension in order to set the database name
-	 * as an encrypted cookie.
 	 */
-	public function start() {
-		if(SapphireTest::using_temp_db()) {
-			$endLink = Director::baseURL() . "dev/testsession/end";
-			return "<p><a id=\"end-session\" href=\"$endLink\">You're in the middle of a test session;"
-				. " click here to end it.</a></p>";
+	public function start($request) {
+		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
 		
-		} else if(!isset($_GET['fixture'])) {
-			$me = Director::baseURL() . "dev/testsession/start";
-			return <<<HTML
-<form action="$me">				
-<p>Enter a fixture file name to start a new test session.  Don't forget to visit dev/testsession/end when
-you're done!</p>
-<p>Fixture file (leave blank to start with default set-up): <input id="fixture-file" name="fixture" /></p>
-<input type="hidden" name="flush" value="1">
-<p><input id="start-session" value="Start test session" type="submit" /></p>
-</form>
-HTML;
-		} else {
-			$fixtureFile = $_GET['fixture'];
-			
-			if($fixtureFile) {
-				// Validate fixture file
-				$realFile = realpath(BASE_PATH.'/'.$fixtureFile);
-				$baseDir = realpath(Director::baseFolder());
-				if(!$realFile || !file_exists($realFile)) {
-					return "<p>Fixture file doesn't exist</p>";
-				} else if(substr($realFile,0,strlen($baseDir)) != $baseDir) {
-					return "<p>Fixture file must be inside $baseDir</p>";
-				} else if(substr($realFile,-4) != '.yml') {
-					return "<p>Fixture file must be a .yml file</p>";
-				} else if(!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
-					return "<p>Fixture file must be inside the tests subfolder of one of your modules.</p>";
-				}
-			}
-
-			$dbname = SapphireTest::create_temp_db();
-
+		// Database
+		if(!$request->getVar('database')) {
+			// Create a new one with a randomized name
+			$dbname = SapphireTest::create_temp_db();	
 			DB::set_alternative_database_name($dbname);
-			
-			// Fixture
-			if($fixtureFile) {
-				$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
-				$fixture->saveIntoDatabase();
-				
-			// If no fixture, then use defaults
-			} else {
-				$dataClasses = ClassInfo::subclassesFor('DataObject');
-				array_shift($dataClasses);
-				foreach($dataClasses as $dataClass) singleton($dataClass)->requireDefaultRecords();
-			}
-			
-			return "<p>Started testing session with fixture '$fixtureFile'.
-				Time to start testing; where would you like to start?</p>
-				<ul>
-					<li><a id=\"home-link\" href=\"" .Director::baseURL() . "\">Homepage - published site</a></li>
-					<li><a id=\"draft-link\" href=\"" .Director::baseURL() . "?stage=Stage\">Homepage - draft site
-						</a></li>
-					<li><a id=\"admin-link\" href=\"" .Director::baseURL() . "admin/\">CMS Admin</a></li>
-					<li><a id=\"end-link\" href=\"" .Director::baseURL() . "dev/testsession/end\">
-						End your test session</a></li>
-				</ul>";
 		}
+
+		$this->setState($request->getVars());
+		
+		return $this->renderWith('TestSession_start');
 	}
 
-	/**
-	 * Set an alternative database name in the current browser session as a cookie.
-	 * Useful for functional testing libraries like behat to create a "clean slate". 
-	 * Does not actually create the database, that's usually handled
-	 * by {@link SapphireTest::create_temp_db()}.
-	 *
-	 * The database names are limited to a specific naming convention as a security measure:
-	 * The "ss_tmpdb" prefix and a random sequence of seven digits.
-	 * This avoids the user gaining access to other production databases 
-	 * available on the same connection.
-	 *
-	 * See {@link start()} for a different approach which actually creates
-	 * the DB and loads a fixture file instead.
-	 *
-	 * Requires PHP's mycrypt extension in order to set the database name
-	 * as an encrypted cookie.
-	 */
-	public function setdb() {
-		if(!isset($_GET['database'])) {
-			return $this->httpError(400, "dev/testsession/setdb must be used with a 'database' parameter");
-		}
-		
-		$name = $_GET['database'];
-		$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
-		$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
-		if($name && !preg_match($pattern, $name)) {
-			return $this->httpError(400, "Invalid database name format");
+	public function set($request) {
+		if(!SapphireTest::using_temp_db()) {
+			throw new LogicException(
+				"This command can only be used with a temporary database. "
+				. "Perhaps you should use dev/testsession/start first?"
+			);
 		}
 
-		DB::set_alternative_database_name($name);
+		$this->setState($request->getVars());
 
-		if($name) {
-			return "<p>Set database session to '$name'.</p>";
-		} else {
-			return "<p>Unset database session.</p>";
+		return $this->renderWith('TestSession_inprogress');
+	}
+
+	public function clear($request) {
+		if(!SapphireTest::using_temp_db()) {
+			throw new LogicException(
+				"This command can only be used with a temporary database. "
+				. "Perhaps you should use dev/testsession/start first?"
+			);
 		}
-		
+
+		SapphireTest::empty_temp_db();
+
+		return "Cleared database and test state";
 	}
 	
-	public function emptydb() {
-		if(SapphireTest::using_temp_db()) {
-			SapphireTest::empty_temp_db();
-
-			if(isset($_GET['fixture']) && ($fixtureFile = $_GET['fixture'])) {
-				$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
-				$fixture->saveIntoDatabase();
-				return "<p>Re-test the test database with fixture '$fixtureFile'.  Time to start testing; where would"
-					. " you like to start?</p>";
-
-			} else {
-				return "<p>Re-test the test database.  Time to start testing; where would you like to start?</p>";
-			}
-			
-		} else {
-			return "<p>dev/testsession/emptydb can only be used with a temporary database. Perhaps you should use"
-				. " dev/testsession/start first?</p>";
-		}
-	}
-
 	public function end() {
+		if(!SapphireTest::using_temp_db()) {
+			throw new LogicException(
+				"This command can only be used with a temporary database. "
+				. "Perhaps you should use dev/testsession/start first?"
+			);
+		}
+
 		SapphireTest::kill_temp_db();
 		DB::set_alternative_database_name(null);
 		Session::clear('testsession');
 
-		return "<p>Test session ended.</p>
-			<ul>
-				<li><a id=\"home-link\" href=\"" .Director::baseURL() . "\">Return to your site</a></li>
-				<li><a id=\"start-link\" href=\"" .Director::baseURL() . "dev/testsession/start\">
-					Start a new test session</a></li>
-			</ul>";
+		return $this->renderWith('TestSession_end');
+	}
+
+	protected function loadFixtureIntoDb($fixtureFile) {
+		$realFile = realpath(BASE_PATH.'/'.$fixtureFile);
+		$baseDir = realpath(Director::baseFolder());
+		if(!$realFile || !file_exists($realFile)) {
+			throw new LogicException("Fixture file doesn't exist");
+		} else if(substr($realFile,0,strlen($baseDir)) != $baseDir) {
+			throw new LogicException("Fixture file must be inside $baseDir");
+		} else if(substr($realFile,-4) != '.yml') {
+			throw new LogicException("Fixture file must be a .yml file");
+		} else if(!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
+			throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
+		}
+
+		$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
+		$fixture->saveIntoDatabase();
+
+		Session::add_to_array('testsession.fixtures', $fixtureFile);
+
+		return $fixture;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function isTesting() {
+		return SapphireTest::using_temp_db();
+	}
+
+	public function setState($data) {
+		// Database
+		$dbname = (isset($data['database'])) ? $data['database'] : null;
+		if($dbname) {
+			// Set existing one, assumes it already has been created
+			$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
+			$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
+			if(!preg_match($pattern, $dbname)) {
+				throw new InvalidArgumentException("Invalid database name format");
+			}
+			DB::set_alternative_database_name($dbname);
+		}
+
+		// Fixtures
+		$fixtureFile = (isset($data['fixture'])) ? $data['fixture'] : null;
+		if($fixtureFile) {
+			$this->loadFixtureIntoDb($fixtureFile);
+		} else {
+			// If no fixture, then use defaults
+			$dataClasses = ClassInfo::subclassesFor('DataObject');
+			array_shift($dataClasses);
+			foreach($dataClasses as $dataClass) singleton($dataClass)->requireDefaultRecords();
+		}
+	}
+
+	/**
+	 * @return ArrayList
+	 */
+	public function getState() {
+		$state = array();
+		if($dbname = DB::get_alternative_database_name()) {
+			$state[] = new ArrayData(array(
+				'Name' => 'Database',
+				'Value' => $dbname,
+			));
+		}
+		if($fixtures = Session::get('testsession.fixtures')) {
+			$state[] = new ArrayData(array(
+				'Name' => 'Fixture',
+				'Value' => implode(',', array_unique($fixtures)),
+			));	
+		}
+
+		return new ArrayList($state);
 	}
 
 }
