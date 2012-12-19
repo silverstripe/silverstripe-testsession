@@ -136,6 +136,35 @@ class TestSessionController extends Controller {
 			array_shift($dataClasses);
 			foreach($dataClasses as $dataClass) singleton($dataClass)->requireDefaultRecords();
 		}
+
+		// Mailer
+		$mailer = (isset($data['mailer'])) ? $data['mailer'] : null;
+		if($mailer) {
+			if(!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
+				throw new InvalidArgumentException(sprintf(
+					'Class "%s" is not a valid class, or subclass of Mailer',
+					$mailer
+				));
+			}
+
+			// Configured through testsession/_config.php
+			Session::set('testsession.mailer', $mailer);	
+		}
+
+		// Date
+		$date = (isset($data['date'])) ? $data['date'] : null;
+		if($date) {
+			require_once 'Zend/Date.php';
+			if(!Zend_Date::isDate($date, 'yyyy-MM-dd HH:mm:ss')) {
+				throw new LogicException(sprintf(
+					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
+					$date
+				));
+			}
+
+			// Configured through testsession/_config.php
+			Session::set('testsession.date', $date);
+		}
 	}
 
 	/**
@@ -153,6 +182,18 @@ class TestSessionController extends Controller {
 			$state[] = new ArrayData(array(
 				'Name' => 'Fixture',
 				'Value' => implode(',', array_unique($fixtures)),
+			));	
+		}
+		if($mailer = Session::get('testsession.mailer')) {
+			$state[] = new ArrayData(array(
+				'Name' => 'Mailer Class',
+				'Value' => $mailer,
+			));	
+		}
+		if($date = Session::get('testsession.date')) {
+			$state[] = new ArrayData(array(
+				'Name' => 'Date',
+				'Value' => $date,
 			));	
 		}
 

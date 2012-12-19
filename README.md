@@ -51,7 +51,9 @@ Parameters for "dev/testsession/start":
     Note: The database names are limited to a specific naming convention as a security measure:
 	  The "ss_tmpdb" prefix and a random sequence of seven digits.
 	  This avoids the user gaining access to other production databases available on the same connection.
-
+ * `mailer`: Subclass of `Mailer`, typically used to record emails instead of actually sending them.
+ * `date`: Sets a simulated date used for all framework operations.
+    Format as "yyyy-MM-dd HH:mm:ss" (Example: "2012-12-31 18:40:59").
 
 Example usage with parameters:
 
