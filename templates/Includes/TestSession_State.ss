@@ -2,9 +2,9 @@
 <p>
 	Current testing state
 <ul>
-	<% control State %>
+	<% loop State %>
 	<li><strong>$Name:</strong> $Value</li>
-	<% end_control %>
+	<% end_loop %>
 </ul>
 </p>
 <% end_if %>

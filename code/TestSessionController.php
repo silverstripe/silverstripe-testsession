@@ -4,7 +4,7 @@
  */
 class TestSessionController extends Controller {
 
-	static $allowed_actions = array(
+	private static $allowed_actions = array(
 		'index',
 		'start',
 		'set',
@@ -98,8 +98,9 @@ class TestSessionController extends Controller {
 			throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
 		}
 
+		$factory = Injector::inst()->create('FixtureFactory');
 		$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
-		$fixture->saveIntoDatabase();
+		$fixture->writeInto($factory);
 
 		Session::add_to_array('testsession.fixtures', $fixtureFile);
 
