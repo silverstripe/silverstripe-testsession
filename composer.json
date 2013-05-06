@@ -16,5 +16,6 @@
 		"composer/installers": "*",
 		"silverstripe/framework": "~3.1",
 		"silverstripe/behat-extension": "*"
-	}
+	},
+	"minimum-stability": "dev"
 }
