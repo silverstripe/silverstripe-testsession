@@ -1,5 +1,8 @@
 <?php
-if(DB::get_alternative_database_name()) {
+if(
+  Config::inst()->get('Security', 'token')
+  && DB::get_alternative_database_name()
+) {
   require_once BASE_PATH . '/vendor/autoload.php';
 	
 	// Register mailer
