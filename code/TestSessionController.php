@@ -44,6 +44,15 @@ class TestSessionController extends Controller {
 		return $this->renderWith('TestSession_start');
 	}
 
+	public function DatabaseName() {
+		if($dbname = DB::get_alternative_database_name()) {
+			return $dbname;
+		} else {
+			$db = DB::getConn();
+			if(method_exists($db, 'currentDatabase')) return $db->currentDatabase();
+		}
+	}
+
 	public function set($request) {
 		if(!SapphireTest::using_temp_db()) {
 			throw new LogicException(

@@ -1,3 +1,4 @@
+<!-- SUCCESS: DBNAME=$DatabaseName -->
 <p>
 	Started testing session. 
 	<% if Fixture %>Loaded fixture "$Fixture" into database.<% end_if %>
