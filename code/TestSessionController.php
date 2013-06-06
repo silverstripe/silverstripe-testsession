@@ -12,6 +12,8 @@ class TestSessionController extends Controller {
 		'clear',
 	);
 
+	private static $alternative_database_name = -1;
+
 	public function init() {
 		parent::init();
 		
@@ -37,6 +39,8 @@ class TestSessionController extends Controller {
 			// Create a new one with a randomized name
 			$dbname = SapphireTest::create_temp_db();	
 			DB::set_alternative_database_name($dbname);
+			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
+			self::$alternative_database_name = $dbname;
 		}
 
 		$this->setState($request->getVars());
@@ -45,7 +49,10 @@ class TestSessionController extends Controller {
 	}
 
 	public function DatabaseName() {
-		if($dbname = DB::get_alternative_database_name()) {
+		// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
+		if(self::$alternative_database_name != -1) {
+			return self::$alternative_database_name;
+		} else if ($dbname = DB::get_alternative_database_name()) {
 			return $dbname;
 		} else {
 			$db = DB::getConn();
@@ -89,6 +96,8 @@ class TestSessionController extends Controller {
 
 		SapphireTest::kill_temp_db();
 		DB::set_alternative_database_name(null);
+		// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
+		self::$alternative_database_name = null;
 		Session::clear('testsession');
 
 		return $this->renderWith('TestSession_end');
@@ -134,6 +143,8 @@ class TestSessionController extends Controller {
 				throw new InvalidArgumentException("Invalid database name format");
 			}
 			DB::set_alternative_database_name($dbname);
+			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
+			self::$alternative_database_name = $dbname;
 		}
 
 		// Fixtures
