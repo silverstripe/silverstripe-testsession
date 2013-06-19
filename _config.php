@@ -8,7 +8,7 @@ if(
 	// Register mailer
   if($mailer = Session::get('testsession.mailer')) {
     Email::set_mailer(new $mailer());
-    Email::send_all_emails_to(null);
+    \Config::inst()->update("Email","send_all_emails_to", null);
   }
   
   // Set mock date and time
