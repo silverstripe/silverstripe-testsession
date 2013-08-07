@@ -35,7 +35,15 @@ class TestSessionController extends Controller {
 		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
 		
 		// Database
-		if(!$request->getVar('database')) {
+		if($request->getVar('database')) {
+			$dbExists = (bool)DB::query(
+				sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($request->getVar('database')))
+			)->value();
+		} else {
+			$dbExists = false;
+		}
+
+		if(!$dbExists) {
 			// Create a new one with a randomized name
 			$dbname = SapphireTest::create_temp_db();	
 			DB::set_alternative_database_name($dbname);
