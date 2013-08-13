@@ -35,9 +35,10 @@ class TestSessionController extends Controller {
 		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
 		
 		// Database
-		if($request->getVar('database')) {
+		$dbName = $request->getVar('database');
+		if($dbName) {
 			$dbExists = (bool)DB::query(
-				sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($request->getVar('database')))
+				sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
 			)->value();
 		} else {
 			$dbExists = false;
@@ -45,13 +46,10 @@ class TestSessionController extends Controller {
 
 		if(!$dbExists) {
 			// Create a new one with a randomized name
-			$dbname = SapphireTest::create_temp_db();	
-			DB::set_alternative_database_name($dbname);
-			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-			self::$alternative_database_name = $dbname;
+			$dbName = SapphireTest::create_temp_db();	
 		}
 
-		$this->setState($request->getVars());
+		$this->setState(array_merge($request->getVars(), array('database' => $dbName)));
 		
 		return $this->renderWith('TestSession_start');
 	}
@@ -152,6 +150,10 @@ class TestSessionController extends Controller {
 			DB::set_alternative_database_name($dbname);
 			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
 			self::$alternative_database_name = $dbname;
+
+			// Database name is set in cookie (next request), ensure its available on this request already
+			global $databaseConfig;
+			DB::connect(array_merge($databaseConfig, array('database' => $dbname)));
 		}
 
 		// Fixtures
