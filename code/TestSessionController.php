@@ -161,12 +161,7 @@ class TestSessionController extends Controller {
 		$fixtureFile = (isset($data['fixture'])) ? $data['fixture'] : null;
 		if($fixtureFile) {
 			$this->loadFixtureIntoDb($fixtureFile);
-		} else {
-			// If no fixture, then use defaults
-			$dataClasses = ClassInfo::subclassesFor('DataObject');
-			array_shift($dataClasses);
-			foreach($dataClasses as $dataClass) singleton($dataClass)->requireDefaultRecords();
-		}
+		} 
 
 		// Mailer
 		$mailer = (isset($data['mailer'])) ? $data['mailer'] : null;
