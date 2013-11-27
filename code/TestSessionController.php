@@ -88,6 +88,10 @@ class TestSessionController extends Controller {
 		}
 
 		SapphireTest::empty_temp_db();
+		
+		if(isset($_SESSION['_testsession_codeblocks'])) {
+			unset($_SESSION['_testsession_codeblocks']);
+		}
 
 		return "Cleared database and test state";
 	}
@@ -155,12 +159,14 @@ class TestSessionController extends Controller {
 			// Database name is set in cookie (next request), ensure its available on this request already
 			global $databaseConfig;
 			DB::connect(array_merge($databaseConfig, array('database' => $dbname)));
+			unset($data['database']);
 		}
 
 		// Fixtures
 		$fixtureFile = (isset($data['fixture'])) ? $data['fixture'] : null;
 		if($fixtureFile) {
 			$this->loadFixtureIntoDb($fixtureFile);
+			unset($data['fixture']);
 		} 
 
 		// Mailer
@@ -175,6 +181,7 @@ class TestSessionController extends Controller {
 
 			// Configured through testsession/_config.php
 			Session::set('testsession.mailer', $mailer);	
+			unset($data['mailer']);
 		}
 
 		// Date
@@ -190,6 +197,12 @@ class TestSessionController extends Controller {
 
 			// Configured through testsession/_config.php
 			Session::set('testsession.date', $date);
+			unset($data['date']);
+		}
+
+		// Set all other keys without special handling
+		if($data) foreach($data as $k => $v) {
+			Session::set('testsession.' . $k, $v);
 		}
 	}
 
@@ -204,23 +217,12 @@ class TestSessionController extends Controller {
 				'Value' => $dbname,
 			));
 		}
-		if($fixtures = Session::get('testsession.fixtures')) {
+		$sessionStates = Session::get('testsession');
+		if($sessionStates) foreach($sessionStates as $k => $v) {
 			$state[] = new ArrayData(array(
-				'Name' => 'Fixture',
-				'Value' => implode(',', array_unique($fixtures)),
-			));	
-		}
-		if($mailer = Session::get('testsession.mailer')) {
-			$state[] = new ArrayData(array(
-				'Name' => 'Mailer Class',
-				'Value' => $mailer,
-			));	
-		}
-		if($date = Session::get('testsession.date')) {
-			$state[] = new ArrayData(array(
-				'Name' => 'Date',
-				'Value' => $date,
-			));	
+				'Name' => $k,
+				'Value' => var_export($v)
+			));
 		}
 
 		return new ArrayList($state);
