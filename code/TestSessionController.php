@@ -33,7 +33,7 @@ class TestSessionController extends Controller {
 	 */
 	public function start($request) {
 		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
-		
+
 		// Database
 		$dbName = $request->getVar('database');
 		if($dbName) {
@@ -44,12 +44,16 @@ class TestSessionController extends Controller {
 			$dbExists = false;
 		}
 
+		$this->extend('onBeforeStart', $dbName);
+
 		if(!$dbExists) {
 			// Create a new one with a randomized name
 			$dbName = SapphireTest::create_temp_db();	
 		}
 
 		$this->setState(array_merge($request->getVars(), array('database' => $dbName)));
+
+		$this->extend('onAfterStart', $dbName);
 		
 		return $this->renderWith('TestSession_start');
 	}
@@ -74,7 +78,10 @@ class TestSessionController extends Controller {
 			);
 		}
 
-		$this->setState($request->getVars());
+		$state = $request->getVars();
+		$this->extend('onBeforeSet', $state);
+		$this->setState($data);
+		$this->extend('onAfterSet');
 
 		return $this->renderWith('TestSession_inprogress');
 	}
@@ -87,11 +94,15 @@ class TestSessionController extends Controller {
 			);
 		}
 
+		$this->extend('onBeforeClear');
+
 		SapphireTest::empty_temp_db();
 		
 		if(isset($_SESSION['_testsession_codeblocks'])) {
 			unset($_SESSION['_testsession_codeblocks']);
 		}
+
+		$this->extend('onAfterClear');
 
 		return "Cleared database and test state";
 	}
@@ -104,11 +115,15 @@ class TestSessionController extends Controller {
 			);
 		}
 
+		$this->extend('onBeforeEnd');
+
 		SapphireTest::kill_temp_db();
 		DB::set_alternative_database_name(null);
 		// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
 		self::$alternative_database_name = null;
 		Session::clear('testsession');
+
+		$this->extend('onAfterEnd');
 
 		return $this->renderWith('TestSession_end');
 	}
