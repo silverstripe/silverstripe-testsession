@@ -6,3 +6,6 @@ Injector:
     properties:
       filters:
         - '%$TestSessionRequestFilter'
+Member:
+  extensions:
+    - TestSessionMemberExtension
