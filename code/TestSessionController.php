@@ -276,10 +276,12 @@ class TestSessionController extends Controller {
 		}
 
 		// Date and time
-		if(@$data['datetime']['date'] && @$data['datetime']['time']) {
+		if(@$data['datetime']['date']) {
 			require_once 'Zend/Date.php';
 			// Convert DatetimeField format
-			$datetime = $data['datetime']['date'] . ' ' . $data['datetime']['time'];
+			$datetime = $data['datetime']['date'];
+			$datetime .= ' ';
+			$datetime .= (@$data['datetime']['time']) ? $data['datetime']['time'] : '00:00:00';
 			if(!Zend_Date::isDate($datetime, 'yyyy-MM-dd HH:mm:ss')) {
 				throw new LogicException(sprintf(
 					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
