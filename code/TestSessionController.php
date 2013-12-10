@@ -44,7 +44,6 @@ class TestSessionController extends Controller {
 	public function start() {
 		$this->extend('onBeforeStart');
 		$params = $this->request->requestVars();
-		if(isset($params['createDatabase'])) $params['createDatabase'] = 1; // legacy default behaviour
 		$this->setState($params);
 		$this->extend('onAfterStart');
 		
