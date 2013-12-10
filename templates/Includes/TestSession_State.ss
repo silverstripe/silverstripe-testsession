@@ -8,4 +8,3 @@
 	</ul>
 </p>
 <% end_if %>
-$Form

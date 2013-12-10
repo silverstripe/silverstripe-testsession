@@ -34,6 +34,7 @@ and interact with it through other URL endpoints.
 
 Commands:
 
+ * `dev/testsession`: Shows options for starting a test session
  * `dev/testsession/start`: Sets up test state, most commonly a test database will be constructed, 
     and your browser session will be amended to use this database. See "Parameters" documentation below.
  * `dev/testsession/end`: Removes the test state, and resets to the original database.
@@ -45,14 +46,15 @@ Parameters for "dev/testsession/start":
  * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest` 
    (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
    The path should be relative to the webroot.
+ * `createDatabase`: Create a temporary database.
  * `database`: Set an alternative database name in the current 
     browser session as a cookie. Does not actually create the database, 
     that's usually handled by `SapphireTest::create_temp_db()`.
     Note: The database names are limited to a specific naming convention as a security measure:
-	  The "ss_tmpdb" prefix and a random sequence of seven digits.
-	  This avoids the user gaining access to other production databases available on the same connection.
+    The "ss_tmpdb" prefix and a random sequence of seven digits.
+    This avoids the user gaining access to other production databases available on the same connection.
  * `mailer`: Subclass of `Mailer`, typically used to record emails instead of actually sending them.
- * `date`: Sets a simulated date used for all framework operations.
+ * `datetime`: Sets a simulated date used for all framework operations.
     Format as "yyyy-MM-dd HH:mm:ss" (Example: "2012-12-31 18:40:59").
 
 Example usage with parameters:

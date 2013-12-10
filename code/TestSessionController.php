@@ -10,7 +10,8 @@ class TestSessionController extends Controller {
 		'set',
 		'end',
 		'clear',
-		'Form',
+		'StartForm',
+		'ProgressForm',
 	);
 
 	private static $alternative_database_name = -1;
@@ -28,62 +29,88 @@ class TestSessionController extends Controller {
 	public function Link($action = null) {
 		return Controller::join_links(Director::baseUrl(), 'dev/testsession', $action);
 	}
+
+	public function index() {
+		if(Session::get('testsession.started')) {
+			return $this->renderWith('TestSession_inprogress');
+		} else {
+			return $this->renderWith('TestSession_start');
+		}
+	}
 	
 	/**
 	 * Start a test session.
 	 */
-	public function start($request) {
-		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
-
-		// Database
-		$dbName = $request->requestVar('database');
-		if($dbName) {
-			$dbExists = (bool)DB::query(
-				sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
-			)->value();
-		} else {
-			$dbExists = false;
-		}
-
-		$this->extend('onBeforeStart', $dbName);
-
-		if(!$dbExists) {
-			// Create a new one with a randomized name
-			$dbName = SapphireTest::create_temp_db();	
-		}
-
-		$this->setState(array_merge($request->requestVars(), array('database' => $dbName)));
-
-		$this->extend('onAfterStart', $dbName);
+	public function start() {
+		$this->extend('onBeforeStart');
+		$params = $this->request->requestVars();
+		if(isset($params['createDatabase'])) $params['createDatabase'] = 1; // legacy default behaviour
+		$this->setState($params);
+		$this->extend('onAfterStart');
 		
-		return $this->renderWith('TestSession_start');
+		return $this->renderWith('TestSession_inprogress');
 	}
 
-	public function Form() {
+	public function StartForm() {
+		$fields = new FieldList(
+			new CheckboxField('createDatabase', 'Create temporary database?', 1)
+		);
+		$fields->merge($this->getBaseFields());
 		$form = new Form(
 			$this, 
-			'Form',
+			'StartForm',
+			$fields,
 			new FieldList(
-				(new TextField('fixture', 'Fixture YAML file path'))
-					->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml'),
-				$datetimeField = new DatetimeField('date', 'Custom date'),
-				new HiddenField('flush', null, 1)
-			),
+				new FormAction('start', 'Start Session')
+			)
+		);
+		
+		$this->extend('updateStartForm', $form);
+
+		return $form;
+	}
+
+	/**
+	 * Shows state which is allowed to be modified while a test session is in progress.
+	 */
+	public function ProgressForm() {
+		$fields = $this->getBaseFields();
+		$form = new Form(
+			$this, 
+			'ProgressForm',
+			$fields,
 			new FieldList(
 				new FormAction('set', 'Set testing state')
 			)
 		);
+		
+		
+		$form->setFormAction($this->Link('set'));
+
+		$this->extend('updateProgressForm', $form);
+
+		return $form;
+	}
+
+	protected function getBaseFields() {
+		$fields = new FieldList(
+			(new TextField('fixture', 'Fixture YAML file path'))
+				->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml'),
+			$datetimeField = new DatetimeField('datetime', 'Custom date'),
+			new HiddenField('flush', null, 1)
+		);
 		$datetimeField->getDateField()
 			->setConfig('dateformat', 'yyyy-MM-dd')
 			->setConfig('showcalendar', true)
-			->setAttribute('placeholder', 'Date');
+			->setAttribute('placeholder', 'Date (yyyy-MM-dd)');
 		$datetimeField->getTimeField()
-			->setAttribute('placeholder', 'Time');
-		$form->setFormAction($this->Link('set'));
+			->setConfig('timeformat', 'HH:mm:ss')
+			->setAttribute('placeholder', 'Time (HH:mm:ss)');
+		$datetimeField->setValue(Session::get('testsession.datetime'));
 
-		$this->extend('updateForm', $form);
+		$this->extend('updateBaseFields', $fields);
 
-		return $form;
+		return $fields;
 	}
 
 	public function DatabaseName() {
@@ -98,15 +125,12 @@ class TestSessionController extends Controller {
 		}
 	}
 
-	public function set($request) {
-		if(!SapphireTest::using_temp_db()) {
-			throw new LogicException(
-				"This command can only be used with a temporary database. "
-				. "Perhaps you should use dev/testsession/start first?"
-			);
+	public function set() {
+		if(!Session::get('testsession.started')) {
+			throw new LogicException("No test session in progress.");
 		}
 
-		$params = $request->requestVars();
+		$params = $this->request->requestVars();
 		$this->extend('onBeforeSet', $params);
 		$this->setState($params);
 		$this->extend('onAfterSet');
@@ -114,17 +138,16 @@ class TestSessionController extends Controller {
 		return $this->renderWith('TestSession_inprogress');
 	}
 
-	public function clear($request) {
-		if(!SapphireTest::using_temp_db()) {
-			throw new LogicException(
-				"This command can only be used with a temporary database. "
-				. "Perhaps you should use dev/testsession/start first?"
-			);
+	public function clear() {
+		if(!Session::get('testsession.started')) {
+			throw new LogicException("No test session in progress.");
 		}
 
 		$this->extend('onBeforeClear');
 
-		SapphireTest::empty_temp_db();
+		if(SapphireTest::using_temp_db()) {
+			SapphireTest::empty_temp_db();
+		}
 		
 		if(isset($_SESSION['_testsession_codeblocks'])) {
 			unset($_SESSION['_testsession_codeblocks']);
@@ -136,19 +159,19 @@ class TestSessionController extends Controller {
 	}
 	
 	public function end() {
-		if(!SapphireTest::using_temp_db()) {
-			throw new LogicException(
-				"This command can only be used with a temporary database. "
-				. "Perhaps you should use dev/testsession/start first?"
-			);
+		if(!Session::get('testsession.started')) {
+			throw new LogicException("No test session in progress.");
 		}
 
 		$this->extend('onBeforeEnd');
 
-		SapphireTest::kill_temp_db();
-		DB::set_alternative_database_name(null);
-		// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-		self::$alternative_database_name = null;
+		if(SapphireTest::using_temp_db()) {
+			SapphireTest::kill_temp_db();
+			DB::set_alternative_database_name(null);
+			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
+			self::$alternative_database_name = null;
+		}
+
 		Session::clear('testsession');
 
 		$this->extend('onAfterEnd');
@@ -189,27 +212,48 @@ class TestSessionController extends Controller {
 		// Filter keys
 		$data = array_diff_key(
 			$data,
-			array('action_set' => true, 'SecurityID' => true, 'url' => true)
+			array(
+				'action_set' => true, 
+				'action_start' => true,
+				'SecurityID' => true, 
+				'url' => true, 
+				'flush' => true,
+			)
 		);
 
 		// Database
-		$dbname = (isset($data['database'])) ? $data['database'] : null;
-		if($dbname) {
+		if(
+			!Session::get('testsession.started') 
+			&& (@$data['createDatabase'] || @$data['database'])
+		) {
+			$dbName = (isset($data['database'])) ? $data['database'] : null;
+			if($dbName) {
+				$dbExists = (bool)DB::query(
+					sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
+				)->value();
+			} else {
+				$dbExists = false;
+			}
+			if(!$dbExists) {
+				// Create a new one with a randomized name
+				$dbName = SapphireTest::create_temp_db();	
+			}
+
 			// Set existing one, assumes it already has been created
 			$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
 			$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
-			if(!preg_match($pattern, $dbname)) {
+			if(!preg_match($pattern, $dbName)) {
 				throw new InvalidArgumentException("Invalid database name format");
 			}
-			DB::set_alternative_database_name($dbname);
+			DB::set_alternative_database_name($dbName);
 			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-			self::$alternative_database_name = $dbname;
+			self::$alternative_database_name = $dbName;
 
 			// Database name is set in cookie (next request), ensure its available on this request already
 			global $databaseConfig;
-			DB::connect(array_merge($databaseConfig, array('database' => $dbname)));
-			unset($data['database']);
-		}
+			DB::connect(array_merge($databaseConfig, array('database' => $dbName)));
+			if(isset($data['database'])) unset($data['database']);
+		} 
 
 		// Fixtures
 		$fixtureFile = (isset($data['fixture'])) ? $data['fixture'] : null;
@@ -227,34 +271,33 @@ class TestSessionController extends Controller {
 					$mailer
 				));
 			}
-
-			// Configured through testsession/_config.php
 			Session::set('testsession.mailer', $mailer);	
 			unset($data['mailer']);
 		}
 
-		// Date
-		$date = (isset($data['date'])) ? $data['date'] : null;
-		if($date) {
+		// Date and time
+		if(@$data['datetime']['date'] && @$data['datetime']['time']) {
 			require_once 'Zend/Date.php';
 			// Convert DatetimeField format
-			if(is_array($date)) $date = $date['date'] . ' ' . $date['time'];
-			if(!Zend_Date::isDate($date, 'yyyy-MM-dd HH:mm:ss')) {
+			$datetime = $data['datetime']['date'] . ' ' . $data['datetime']['time'];
+			if(!Zend_Date::isDate($datetime, 'yyyy-MM-dd HH:mm:ss')) {
 				throw new LogicException(sprintf(
 					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
-					$date
+					$datetime
 				));
 			}
-
-			// Configured through testsession/_config.php
-			Session::set('testsession.date', $date);
-			unset($data['date']);
+			Session::set('testsession.datetime', $datetime);
+			unset($data['datetime']);
+		} else {
+			unset($data['datetime']);
 		}
 
 		// Set all other keys without special handling
 		if($data) foreach($data as $k => $v) {
 			Session::set('testsession.' . $k, $v);
 		}
+
+		Session::set('testsession.started', true);
 	}
 
 	/**
@@ -262,12 +305,10 @@ class TestSessionController extends Controller {
 	 */
 	public function getState() {
 		$state = array();
-		if($dbname = DB::get_alternative_database_name()) {
-			$state[] = new ArrayData(array(
+		$state[] = new ArrayData(array(
 				'Name' => 'Database',
-				'Value' => $dbname,
+				'Value' => DB::getConn()->currentDatabase(),
 			));
-		}
 		$sessionStates = Session::get('testsession');
 		if($sessionStates) foreach($sessionStates as $k => $v) {
 			$state[] = new ArrayData(array(
