@@ -10,6 +10,7 @@ class TestSessionController extends Controller {
 		'set',
 		'end',
 		'clear',
+		'Form',
 	);
 
 	private static $alternative_database_name = -1;
@@ -35,7 +36,7 @@ class TestSessionController extends Controller {
 		if(SapphireTest::using_temp_db()) return $this->renderWith('TestSession_inprogress');
 
 		// Database
-		$dbName = $request->getVar('database');
+		$dbName = $request->requestVar('database');
 		if($dbName) {
 			$dbExists = (bool)DB::query(
 				sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
@@ -51,11 +52,38 @@ class TestSessionController extends Controller {
 			$dbName = SapphireTest::create_temp_db();	
 		}
 
-		$this->setState(array_merge($request->getVars(), array('database' => $dbName)));
+		$this->setState(array_merge($request->requestVars(), array('database' => $dbName)));
 
 		$this->extend('onAfterStart', $dbName);
 		
 		return $this->renderWith('TestSession_start');
+	}
+
+	public function Form() {
+		$form = new Form(
+			$this, 
+			'Form',
+			new FieldList(
+				(new TextField('fixture', 'Fixture YAML file path'))
+					->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml'),
+				$datetimeField = new DatetimeField('date', 'Custom date'),
+				new HiddenField('flush', null, 1)
+			),
+			new FieldList(
+				new FormAction('set', 'Set testing state')
+			)
+		);
+		$datetimeField->getDateField()
+			->setConfig('dateformat', 'yyyy-MM-dd')
+			->setConfig('showcalendar', true)
+			->setAttribute('placeholder', 'Date');
+		$datetimeField->getTimeField()
+			->setAttribute('placeholder', 'Time');
+		$form->setFormAction($this->Link('set'));
+
+		$this->extend('updateForm', $form);
+
+		return $form;
 	}
 
 	public function DatabaseName() {
@@ -78,9 +106,9 @@ class TestSessionController extends Controller {
 			);
 		}
 
-		$state = $request->getVars();
-		$this->extend('onBeforeSet', $state);
-		$this->setState($data);
+		$params = $request->requestVars();
+		$this->extend('onBeforeSet', $params);
+		$this->setState($params);
 		$this->extend('onAfterSet');
 
 		return $this->renderWith('TestSession_inprogress');
@@ -158,6 +186,12 @@ class TestSessionController extends Controller {
 	}
 
 	public function setState($data) {
+		// Filter keys
+		$data = array_diff_key(
+			$data,
+			array('action_set' => true, 'SecurityID' => true, 'url' => true)
+		);
+
 		// Database
 		$dbname = (isset($data['database'])) ? $data['database'] : null;
 		if($dbname) {
@@ -203,6 +237,8 @@ class TestSessionController extends Controller {
 		$date = (isset($data['date'])) ? $data['date'] : null;
 		if($date) {
 			require_once 'Zend/Date.php';
+			// Convert DatetimeField format
+			if(is_array($date)) $date = $date['date'] . ' ' . $date['time'];
 			if(!Zend_Date::isDate($date, 'yyyy-MM-dd HH:mm:ss')) {
 				throw new LogicException(sprintf(
 					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
