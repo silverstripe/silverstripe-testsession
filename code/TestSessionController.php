@@ -236,7 +236,7 @@ class TestSessionController extends Controller {
 		if($sessionStates) foreach($sessionStates as $k => $v) {
 			$state[] = new ArrayData(array(
 				'Name' => $k,
-				'Value' => var_export($v)
+				'Value' => var_export($v, true)
 			));
 		}
 
