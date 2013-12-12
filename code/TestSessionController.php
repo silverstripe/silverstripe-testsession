@@ -21,7 +21,7 @@ class TestSessionController extends Controller {
 		
 		$canAccess = (
 			!Director::isLive()
-			&& (Director::isDev() || Director::is_cli() || Permission::check("ADMIN"))
+			&& (Director::isDev() || Director::isTest() || Director::is_cli() || Permission::check("ADMIN"))
 		);
 		if(!$canAccess) return Security::permissionFailure($this);
 	}
