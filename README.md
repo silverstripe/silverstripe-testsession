@@ -5,7 +5,7 @@
 This module starts a testing session in a browser,
 in order to test a SilverStripe application in a clean state.
 Usually the session is started on a fresh database with only default records loaded.
-Further data can be loaded from YAML fixtures.
+Further data can be loaded from YAML fixtures or database dumps.
 
 The module also serves as an initializer for the
 [SilverStripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).
@@ -47,6 +47,7 @@ Parameters for "dev/testsession/start":
    (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
+ * `createDatabaseTemplate`: Path to a database dump to load into a newly created temporary database.
  * `database`: Set an alternative database name in the current 
     browser session as a cookie. Does not actually create the database, 
     that's usually handled by `SapphireTest::create_temp_db()`.

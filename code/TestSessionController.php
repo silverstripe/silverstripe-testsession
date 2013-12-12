@@ -16,6 +16,11 @@ class TestSessionController extends Controller {
 
 	private static $alternative_database_name = -1;
 
+	/**
+	 * @var String Absolute path to a folder containing *.sql dumps.
+	 */
+	private static $database_templates_path;
+
 	public function init() {
 		parent::init();
 		
@@ -24,6 +29,9 @@ class TestSessionController extends Controller {
 			&& (Director::isDev() || Director::isTest() || Director::is_cli() || Permission::check("ADMIN"))
 		);
 		if(!$canAccess) return Security::permissionFailure($this);
+
+		Requirements::javascript('framework/thirdparty/jquery/jquery.js');
+		Requirements::javascript('testsession/javascript/testsession.js');
 	}
 
 	public function Link($action = null) {
@@ -51,9 +59,17 @@ class TestSessionController extends Controller {
 	}
 
 	public function StartForm() {
+		$databaseTemplates = $this->getDatabaseTemplates();
 		$fields = new FieldList(
 			new CheckboxField('createDatabase', 'Create temporary database?', 1)
 		);
+		if($databaseTemplates) {
+			$fields->push(
+				(new DropdownField('createDatabaseTemplate', false))
+					->setSource($databaseTemplates)
+					->setEmptyString('Empty database')
+			);
+		}
 		$fields->merge($this->getBaseFields());
 		$form = new Form(
 			$this, 
@@ -252,6 +268,27 @@ class TestSessionController extends Controller {
 			global $databaseConfig;
 			DB::connect(array_merge($databaseConfig, array('database' => $dbName)));
 			if(isset($data['database'])) unset($data['database']);
+
+			// Import database template if required
+			if(isset($data['createDatabaseTemplate']) && $data['createDatabaseTemplate']) {
+				$sql = file_get_contents($data['createDatabaseTemplate']);
+				// Split into individual query commands, removing comments
+				$sqlCmds = array_filter(
+					preg_split('/\s*;\s*/', 
+						preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
+					)
+				);
+				
+				// Execute each query
+				foreach($sqlCmds as $sqlCmd) {
+					DB::query($sqlCmd);
+				}
+				
+				// In case the dump involved CREATE TABLE commands, we need to ensure
+				// the schema is still up to date
+				$dbAdmin = new DatabaseAdmin();
+				$dbAdmin->doBuild(true /*quiet*/, false /*populate*/);
+			}
 		} 
 
 		// Fixtures
@@ -319,6 +356,36 @@ class TestSessionController extends Controller {
 		}
 
 		return new ArrayList($state);
+	}
+
+	/**
+	 * Get all *.sql database files located in a specific path,
+	 * keyed by their file name.
+	 * 
+	 * @param  String $path Absolute folder path
+	 * @return array
+	 */
+	protected function getDatabaseTemplates($path = null) {
+		$templates = array();
+		
+		if(!$path) {
+			$path = $this->config()->database_templates_path;
+		}
+		
+		// TODO Remove once we can set BASE_PATH through the config layer
+		if($path && !Director::is_absolute($path)) {
+			$path = BASE_PATH . '/' . $path;
+		}
+
+		if($path && file_exists($path)) {
+			$it = new FilesystemIterator($path);
+			foreach($it as $fileinfo) {
+				if($fileinfo->getExtension() != 'sql') continue;
+				$templates[$fileinfo->getRealPath()] = $fileinfo->getFilename();
+			}
+		}
+
+		return $templates;
 	}
 
 }
