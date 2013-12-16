@@ -10,6 +10,22 @@ class TestSessionMemberExtension extends DataExtension {
 	public function memberLoggedIn() {
 		if(!SapphireTest::using_temp_db()) return;
 
+		$this->setCurrentMemberState();
+	}
+
+	public function onRegister() {
+		if(!SapphireTest::using_temp_db()) return;
+
+		$this->setCurrentMemberState();
+	}
+
+	public function memberLoggedOut() {
+		if(!SapphireTest::using_temp_db()) return;
+
+		$state = TestSessionDatabaseState::get()->filter('Key', 'CurrentMemberID')->removeAll();
+	}
+
+	protected function setCurrentMemberState() {
 		$state = TestSessionDatabaseState::get()->find('Key', 'CurrentMemberID');
 		if(!$state) {
 			$state = new TestSessionDatabaseState(array(
@@ -18,12 +34,6 @@ class TestSessionMemberExtension extends DataExtension {
 		}
 		$state->Value = $this->owner->ID;
 		$state->write();
-	}
-
-	public function memberLoggedOut() {
-		if(!SapphireTest::using_temp_db()) return;
-
-		$state = TestSessionDatabaseState::get()->filter('Key', 'CurrentMemberID')->removeAll();
 	}
 
 }

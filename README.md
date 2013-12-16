@@ -61,4 +61,3 @@ Parameters for "dev/testsession/start":
 Example usage with parameters:
 
 	dev/testsession/start?database=ss_tmpdb_1234567&fixture=cms/tests/controller/CMSMainTest.yml
-
