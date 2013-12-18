@@ -23,6 +23,8 @@ class TestSessionController extends Controller {
 
 	public function init() {
 		parent::init();
+
+		$this->extend('init');
 		
 		$canAccess = (
 			!Director::isLive()
