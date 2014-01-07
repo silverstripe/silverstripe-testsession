@@ -67,10 +67,10 @@ class TestSessionController extends Controller {
 		);
 		if($databaseTemplates) {
 			$fields->push(
-				(new DropdownField('createDatabaseTemplate', false))
-					->setSource($databaseTemplates)
-					->setEmptyString('Empty database')
+				$createDatabaseTemplate = new DropdownField('createDatabaseTemplate', false)
 			);
+			$createDatabaseTemplate->setSource($databaseTemplates);
+			$createDatabaseTemplate->setEmptyString('Empty database');
 		}
 		$fields->merge($this->getBaseFields());
 		$form = new Form(
@@ -111,11 +111,11 @@ class TestSessionController extends Controller {
 
 	protected function getBaseFields() {
 		$fields = new FieldList(
-			(new TextField('fixture', 'Fixture YAML file path'))
-				->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml'),
+			$textField = new TextField('fixture', 'Fixture YAML file path'),
 			$datetimeField = new DatetimeField('datetime', 'Custom date'),
 			new HiddenField('flush', null, 1)
 		);
+		$textField->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml');
 		$datetimeField->getDateField()
 			->setConfig('dateformat', 'yyyy-MM-dd')
 			->setConfig('showcalendar', true)
