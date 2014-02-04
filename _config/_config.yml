@@ -9,3 +9,8 @@ Injector:
 Member:
   extensions:
     - TestSessionMemberExtension
+---
+Name: testsession-setup
+---
+TestSessionEnvironment:
+  test_state_file: TESTS_RUNNING.json
