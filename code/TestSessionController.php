@@ -41,7 +41,7 @@ class TestSessionController extends Controller {
 	}
 
 	public function index() {
-		if(Session::get('testsession.started')) {
+		if(Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
 			return $this->renderWith('TestSession_inprogress');
 		} else {
 			return $this->renderWith('TestSession_start');
@@ -49,13 +49,29 @@ class TestSessionController extends Controller {
 	}
 	
 	/**
-	 * Start a test session.
+	 * Start a test session. If you wish to extend how the test session is started (and add additional test state),
+	 * then take a look at {@link TestSessionEnvironment::startTestSession()} and
+	 * {@link TestSessionEnvironment::applyState()} to see the extension points.
 	 */
 	public function start() {
-		$this->extend('onBeforeStart');
 		$params = $this->request->requestVars();
-		$this->setState($params);
-		$this->extend('onAfterStart');
+
+		// Convert datetime from form object into a single string
+		$params = $this->fixDatetimeFormField($params);
+
+		// Remove unnecessary items of form-specific data from being saved in the test session
+		$params = array_diff_key(
+			$params,
+			array(
+				'action_set' => true,
+				'action_start' => true,
+				'SecurityID' => true,
+				'url' => true,
+				'flush' => true,
+			)
+		);
+
+		Injector::inst()->get('TestSessionEnvironment')->startTestSession($params);
 		
 		return $this->renderWith('TestSession_inprogress');
 	}
@@ -111,6 +127,8 @@ class TestSessionController extends Controller {
 	}
 
 	protected function getBaseFields() {
+		$testState = Injector::inst()->get('TestSessionEnvironment')->getState();
+
 		$fields = new FieldList(
 			$textfield = new TextField('fixture', 'Fixture YAML file path'),
 			$datetimeField = new DatetimeField('datetime', 'Custom date'),
@@ -124,7 +142,7 @@ class TestSessionController extends Controller {
 		$datetimeField->getTimeField()
 			->setConfig('timeformat', 'HH:mm:ss')
 			->setAttribute('placeholder', 'Time (HH:mm:ss)');
-		$datetimeField->setValue(Session::get('testsession.datetime'));
+		$datetimeField->setValue((isset($testState->datetime) ? $testState->datetime : null));
 
 		$this->extend('updateBaseFields', $fields);
 
@@ -132,32 +150,46 @@ class TestSessionController extends Controller {
 	}
 
 	public function DatabaseName() {
-		// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-		if(self::$alternative_database_name != -1) {
-			return self::$alternative_database_name;
-		} else if ($dbname = DB::get_alternative_database_name()) {
-			return $dbname;
-		} else {
-			$db = DB::getConn();
-			if(method_exists($db, 'currentDatabase')) return $db->currentDatabase();
-		}
+		$db = DB::getConn();
+		if(method_exists($db, 'currentDatabase')) return $db->currentDatabase();
 	}
 
+	/**
+	 * Updates an in-progress {@link TestSessionEnvironment} object with new details. This could be loading in new
+	 * fixtures, setting the mocked date to another value etc.
+	 *
+	 * @return HTMLText Rendered Template
+	 * @throws LogicException
+	 */
 	public function set() {
-		if(!Session::get('testsession.started')) {
+		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
 		$params = $this->request->requestVars();
-		$this->extend('onBeforeSet', $params);
-		$this->setState($params);
-		$this->extend('onAfterSet');
+
+		// Convert datetime from form object into a single string
+		$params = $this->fixDatetimeFormField($params);
+
+		// Remove unnecessary items of form-specific data from being saved in the test session
+		$params = array_diff_key(
+			$params,
+			array(
+				'action_set' => true,
+				'action_start' => true,
+				'SecurityID' => true,
+				'url' => true,
+				'flush' => true,
+			)
+		);
+
+		Injector::inst()->get('TestSessionEnvironment')->updateTestSession($params);
 
 		return $this->renderWith('TestSession_inprogress');
 	}
 
 	public function clear() {
-		if(!Session::get('testsession.started')) {
+		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
@@ -175,48 +207,20 @@ class TestSessionController extends Controller {
 
 		return "Cleared database and test state";
 	}
-	
+
+	/**
+	 * As with {@link self::start()}, if you want to extend the functionality of this, then look at
+	 * {@link TestSessionEnvironent::endTestSession()} as the extension points have moved to there now that the logic
+	 * is there.
+	 */
 	public function end() {
-		if(!Session::get('testsession.started')) {
+		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
-		$this->extend('onBeforeEnd');
-
-		if(SapphireTest::using_temp_db()) {
-			SapphireTest::kill_temp_db();
-			DB::set_alternative_database_name(null);
-			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-			self::$alternative_database_name = null;
-		}
-
-		Session::clear('testsession');
-
-		$this->extend('onAfterEnd');
+		Injector::inst()->get('TestSessionEnvironment')->endTestSession();
 
 		return $this->renderWith('TestSession_end');
-	}
-
-	protected function loadFixtureIntoDb($fixtureFile) {
-		$realFile = realpath(BASE_PATH.'/'.$fixtureFile);
-		$baseDir = realpath(Director::baseFolder());
-		if(!$realFile || !file_exists($realFile)) {
-			throw new LogicException("Fixture file doesn't exist");
-		} else if(substr($realFile,0,strlen($baseDir)) != $baseDir) {
-			throw new LogicException("Fixture file must be inside $baseDir");
-		} else if(substr($realFile,-4) != '.yml') {
-			throw new LogicException("Fixture file must be a .yml file");
-		} else if(!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
-			throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
-		}
-
-		$factory = Injector::inst()->create('FixtureFactory');
-		$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
-		$fixture->writeInto($factory);
-
-		Session::add_to_array('testsession.fixtures', $fixtureFile);
-
-		return $fixture;
 	}
 
 	/**
@@ -227,131 +231,19 @@ class TestSessionController extends Controller {
 	}
 
 	public function setState($data) {
-		// Filter keys
-		$data = array_diff_key(
-			$data,
-			array(
-				'action_set' => true, 
-				'action_start' => true,
-				'SecurityID' => true, 
-				'url' => true, 
-				'flush' => true,
-			)
-		);
-
-		// Database
-		if(
-			!Session::get('testsession.started') 
-			&& (@$data['createDatabase'] || @$data['database'])
-		) {
-			$dbName = (isset($data['database'])) ? $data['database'] : null;
-			if($dbName) {
-				$dbExists = (bool)DB::query(
-					sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
-				)->value();
-			} else {
-				$dbExists = false;
-			}
-			if(!$dbExists) {
-				// Create a new one with a randomized name
-				$dbName = SapphireTest::create_temp_db();	
-			}
-
-			// Set existing one, assumes it already has been created
-			$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
-			$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
-			if(!preg_match($pattern, $dbName)) {
-				throw new InvalidArgumentException("Invalid database name format");
-			}
-			DB::set_alternative_database_name($dbName);
-			// Workaround for bug in Cookie::get(), fixed in 3.1-rc1
-			self::$alternative_database_name = $dbName;
-
-			// Database name is set in cookie (next request), ensure its available on this request already
-			global $databaseConfig;
-			DB::connect(array_merge($databaseConfig, array('database' => $dbName)));
-			if(isset($data['database'])) unset($data['database']);
-
-			// Import database template if required
-			if(isset($data['createDatabaseTemplate']) && $data['createDatabaseTemplate']) {
-				$sql = file_get_contents($data['createDatabaseTemplate']);
-				// Split into individual query commands, removing comments
-				$sqlCmds = array_filter(
-					preg_split('/\s*;\s*/', 
-						preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
-					)
-				);
-				
-				// Execute each query
-				foreach($sqlCmds as $sqlCmd) {
-					DB::query($sqlCmd);
-				}
-				
-				// In case the dump involved CREATE TABLE commands, we need to ensure
-				// the schema is still up to date
-				$dbAdmin = new DatabaseAdmin();
-				$dbAdmin->doBuild(true /*quiet*/, false /*populate*/);
-			}
-		} 
-
-		// Fixtures
-		$fixtureFile = (isset($data['fixture'])) ? $data['fixture'] : null;
-		if($fixtureFile) {
-			$this->loadFixtureIntoDb($fixtureFile);
-			unset($data['fixture']);
-		} 
-
-		// Mailer
-		$mailer = (isset($data['mailer'])) ? $data['mailer'] : null;
-		if($mailer) {
-			if(!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
-				throw new InvalidArgumentException(sprintf(
-					'Class "%s" is not a valid class, or subclass of Mailer',
-					$mailer
-				));
-			}
-			Session::set('testsession.mailer', $mailer);	
-			unset($data['mailer']);
-		}
-
-		// Date and time
-		if(@$data['datetime']['date']) {
-			require_once 'Zend/Date.php';
-			// Convert DatetimeField format
-			$datetime = $data['datetime']['date'];
-			$datetime .= ' ';
-			$datetime .= (@$data['datetime']['time']) ? $data['datetime']['time'] : '00:00:00';
-			if(!Zend_Date::isDate($datetime, 'yyyy-MM-dd HH:mm:ss')) {
-				throw new LogicException(sprintf(
-					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
-					$datetime
-				));
-			}
-			Session::set('testsession.datetime', $datetime);
-			unset($data['datetime']);
-		} else {
-			unset($data['datetime']);
-		}
-
-		// Set all other keys without special handling
-		if($data) foreach($data as $k => $v) {
-			Session::set('testsession.' . $k, $v);
-		}
-
-		Session::set('testsession.started', true);
+		Deprecation::notice('3.1', 'TestSessionController::setState() is no longer used, please use '
+			. 'TestSessionEnvironment instead.');
 	}
 
 	/**
 	 * @return ArrayList
 	 */
 	public function getState() {
+		$stateObj = Injector::inst()->get('TestSessionEnvironment')->getState();
 		$state = array();
-		$state[] = new ArrayData(array(
-				'Name' => 'Database',
-				'Value' => DB::getConn()->currentDatabase(),
-			));
-		$sessionStates = Session::get('testsession');
-		if($sessionStates) foreach($sessionStates as $k => $v) {
+
+		// Convert the stdObject of state into ArrayData
+		foreach($stateObj as $k => $v) {
 			$state[] = new ArrayData(array(
 				'Name' => $k,
 				'Value' => var_export($v, true)
@@ -389,6 +281,24 @@ class TestSessionController extends Controller {
 		}
 
 		return $templates;
+	}
+
+	/**
+	 * @param $params array The form fields as passed through from ->start() or ->set()
+	 * @return array The form fields, after fixing the datetime field if necessary
+	 */
+	private function fixDatetimeFormField($params) {
+		if(isset($params['datetime']) && is_array($params['datetime']) && !empty($params['datetime']['date'])) {
+			// Convert DatetimeField format from array into string
+			$datetime = $params['datetime']['date'];
+			$datetime .= ' ';
+			$datetime .= (@$params['datetime']['time']) ? $params['datetime']['time'] : '00:00:00';
+			$params['datetime'] = $datetime;
+		} else if(isset($params['datetime']) && empty($params['datetime']['date'])) {
+			unset($params['datetime']); // No datetime, so remove the param entirely
+		}
+
+		return $params;
 	}
 
 }
