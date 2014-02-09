@@ -21,6 +21,17 @@ class TestSessionController extends Controller {
 	 */
 	private static $database_templates_path;
 
+	/**
+	 * @var TestSessionEnvironment
+	 */
+	protected $environment;
+
+	public function __construct() {
+		parent::__construct();
+
+		$this->environment = Injector::inst()->get('TestSessionEnvironment');
+	}
+
 	public function init() {
 		parent::init();
 
@@ -41,7 +52,7 @@ class TestSessionController extends Controller {
 	}
 
 	public function index() {
-		if(Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
+		if($this->environment->isRunningTests()) {
 			return $this->renderWith('TestSession_inprogress');
 		} else {
 			return $this->renderWith('TestSession_start');
@@ -71,7 +82,7 @@ class TestSessionController extends Controller {
 			)
 		);
 
-		Injector::inst()->get('TestSessionEnvironment')->startTestSession($params);
+		$this->environment->startTestSession($params);
 		
 		return $this->renderWith('TestSession_inprogress');
 	}
@@ -127,7 +138,7 @@ class TestSessionController extends Controller {
 	}
 
 	protected function getBaseFields() {
-		$testState = Injector::inst()->get('TestSessionEnvironment')->getState();
+		$testState = $this->environment->getState();
 
 		$fields = new FieldList(
 			$textfield = new TextField('fixture', 'Fixture YAML file path'),
@@ -162,7 +173,7 @@ class TestSessionController extends Controller {
 	 * @throws LogicException
 	 */
 	public function set() {
-		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
+		if(!$this->environment->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
@@ -183,13 +194,13 @@ class TestSessionController extends Controller {
 			)
 		);
 
-		Injector::inst()->get('TestSessionEnvironment')->updateTestSession($params);
+		$this->environment->updateTestSession($params);
 
 		return $this->renderWith('TestSession_inprogress');
 	}
 
 	public function clear() {
-		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
+		if(!$this->environment->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
@@ -214,11 +225,11 @@ class TestSessionController extends Controller {
 	 * is there.
 	 */
 	public function end() {
-		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) {
+		if(!$this->environment->isRunningTests()) {
 			throw new LogicException("No test session in progress.");
 		}
 
-		Injector::inst()->get('TestSessionEnvironment')->endTestSession();
+		$this->environment->endTestSession();
 
 		return $this->renderWith('TestSession_end');
 	}
@@ -239,7 +250,7 @@ class TestSessionController extends Controller {
 	 * @return ArrayList
 	 */
 	public function getState() {
-		$stateObj = Injector::inst()->get('TestSessionEnvironment')->getState();
+		$stateObj = $this->environment->getState();
 		$state = array();
 
 		// Convert the stdObject of state into ArrayData
