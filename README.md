@@ -17,15 +17,9 @@ into a temporary database table for inspection by the CLI-based process.
 
 ## Setup
 
-In order to execute the commands, the environment must be in "dev mode",
-or you must be logged-in with administrative permissions.
+Simply require the module in a SilverStripe webroot (3.0 or newer):
 
-Since the database name is stored as an encrypted cookie,
-you need to create a secure token for the encryption first:
-
-	sake dev/generatesecuretoken
-
-The resulting configuration code needs to be placed in `mysite/_config.php`.
+  composer require silverstripe/behat-extension
 
 ## Usage
 
@@ -41,7 +35,9 @@ Commands:
  * `dev/testsession/loadfixture?fixture=<path>`: Loads a fixture into an existing test state.
  * `dev/testsession/clear`: Empties the test state.
 
-Parameters for "dev/testsession/start":
+While you can use the interface to set the test session state,
+it can be useful to set them programmatically through query parameters
+on "dev/testsession/start":
 
  * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest` 
    (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
