@@ -1,16 +1,16 @@
 <?php
 
 /**
- * Class TestSessionEnvironment
- * Abstracts out how testing sessions are started, run, and finished. This should ensure that test sessions details are
- * enforced across multiple separate requests (for example: behat CLI starts a testsession, then opens a web browser -
- * the web browser should know nothing about the test session, and shouldn't need to visit dev/testsession/start itself
- * as it will be loaded from this class). Additionally, Resque workers etc. should also not need to know about it
- * (although in that case they do need to poll for changes to testsession, as they are a long-lived process that is
- * generally started much earlier than the test session is created).
+ * Responsible for starting and finalizing test sessions.
+ * Since these session span across multiple requests, session information is persisted
+ * in a file. This file is stored in the webroot by default, and the test session
+ * is considered "in progress" as long as this file exists.
  *
- * Information here is currently stored on the filesystem - in the webroot, as it's the only persistent place to store
- * this detail.
+ * This allows for cross-request, cross-client sharing of the same testsession,
+ * for example: Behat CLI starts a testsession, then opens a web browser which
+ * makes a separate request picking up the same testsession.
+ *
+ * See {@link $state} for default information stored in the test session.
  */
 class TestSessionEnvironment extends Object {
 	/**
@@ -73,9 +73,9 @@ class TestSessionEnvironment extends Object {
 	public function startTestSession($state) {
 		$this->extend('onBeforeStartTestSession', $state);
 
-		// Convert to JSON and back so we can share the appleState() code between this and ->loadFromFile()
-		$jason = json_encode($state, JSON_FORCE_OBJECT);
-		$state = json_decode($jason);
+		// Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
+		$json = json_encode($state, JSON_FORCE_OBJECT);
+		$state = json_decode($json);
 
 		$this->applyState($state);
 		$this->persistState();
@@ -87,8 +87,8 @@ class TestSessionEnvironment extends Object {
 		$this->extend('onBeforeUpdateTestSession', $state);
 
 		// Convert to JSON and back so we can share the appleState() code between this and ->loadFromFile()
-		$jason = json_encode($state, JSON_FORCE_OBJECT);
-		$state = json_decode($jason);
+		$json = json_encode($state, JSON_FORCE_OBJECT);
+		$state = json_decode($json);
 
 		$this->applyState($state);
 		$this->persistState();
@@ -100,7 +100,7 @@ class TestSessionEnvironment extends Object {
 	 * Assumes the database has already been created in startTestSession(), as this method can be called from
 	 * _config.php where we don't yet have a DB connection.
 	 *
-	 * Does not persist the state to the filesystem, {@see self::persistState()}.
+	 * Does not persist the state to the filesystem, see {@link self::persistState()}.
 	 *
 	 * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
 	 * onAfterApplyState() to add your own test state handling in.
@@ -234,14 +234,14 @@ class TestSessionEnvironment extends Object {
 		if($this->isRunningTests()) {
 			try {
 				$contents = file_get_contents(Director::getAbsFile($this->config()->test_state_file));
-				$jason = json_decode($contents);
+				$json = json_decode($contents);
 
-				if(!isset($jason->database)) {
+				if(!isset($json->database)) {
 					throw new \LogicException('The test session file ('
 						. Director::getAbsFile($this->config()->test_state_file) . ') doesn\'t contain a database name.');
 				}
 
-				$this->applyState($jason);
+				$this->applyState($json);
 			} catch(Exception $e) {
 				throw new \Exception("A test session appears to be in progress, but we can't retrieve the details. "
 					. "Try removing the " . Director::getAbsFile($this->config()->test_state_file) . " file. Inner "
@@ -258,10 +258,11 @@ class TestSessionEnvironment extends Object {
 	}
 
 	private function removeStateFile() {
-		if(file_exists(Director::getAbsFile($this->config()->test_state_file))) {
-			if(!unlink(Director::getAbsFile($this->config()->test_state_file))) {
+		$file = Director::getAbsFile($this->config()->test_state_file);
+		if(file_exists($file)) {
+			if(!unlink($file)) {
 				throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
-					. 'path: ' . Director::getAbsFile($this->config()->test_state_file));
+					. 'path: ' . $file);
 			}
 		}
 	}

@@ -7,6 +7,11 @@ in order to test a SilverStripe application in a clean state.
 Usually the session is started on a fresh database with only default records loaded.
 Further data can be loaded from YAML fixtures or database dumps.
 
+The session is persisted in a file which is generated upon starting the session.
+As long as this file exists, the test session is considered in progress,
+both in web browsers and command-line execution. By default, the file
+is stored in the webroot under `TESTS_RUNNING.js`.
+
 The module also serves as an initializer for the
 [SilverStripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).
 It is required for Behat because the Behat CLI test runner needs to persist
