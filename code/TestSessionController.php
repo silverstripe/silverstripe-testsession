@@ -100,6 +100,7 @@ class TestSessionController extends Controller {
 			$dropdown->setSource($databaseTemplates)
 				->setEmptyString('Empty database');
 		}
+		$fields->push(new CheckboxField('requireDefaultRecords', 'Create default data?'));
 		$fields->merge($this->getBaseFields());
 		$form = new Form(
 			$this, 
