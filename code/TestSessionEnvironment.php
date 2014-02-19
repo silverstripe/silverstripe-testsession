@@ -197,7 +197,9 @@ class TestSessionEnvironment extends Object {
 				// In case the dump involved CREATE TABLE commands, we need to ensure
 				// the schema is still up to date
 				$dbAdmin = new DatabaseAdmin();
-				$dbAdmin->doBuild(true /*quiet*/, false /*populate*/);
+				$populate = (isset($state->requireDefaultRecords) && $state->requireDefaultRecords);
+				Versioned::set_reading_mode('');
+				$dbAdmin->doBuild(true /*quiet*/, $populate);
 			}
 
 			if(isset($state->createDatabase)) unset($state->createDatabase);

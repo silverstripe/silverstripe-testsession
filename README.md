@@ -49,6 +49,7 @@ on "dev/testsession/start":
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
  * `createDatabaseTemplate`: Path to a database dump to load into a newly created temporary database.
+ * `requireDefaultRecords`: Include default records as defined on the model classes (in PHP)
  * `database`: Set an alternative database name in the current 
     browser session as a cookie. Does not actually create the database, 
     that's usually handled by `SapphireTest::create_temp_db()`.
