@@ -71,7 +71,15 @@ class TestSessionEnvironment extends Object {
 	 * @param array $state An array of test state options to write.
 	 */
 	public function startTestSession($state) {
-		$this->extend('onBeforeStartTestSession', $state);
+		$extendedState = $this->extend('onBeforeStartTestSession', $state);
+
+		// $extendedState is now a multi-dimensional array (if extensions exist)
+		if($extendedState && is_array($extendedState)) {
+			foreach($extendedState as $stateVal) {
+				// $stateVal is one extension's additions to $state
+				$state = array_merge($state, $stateVal); // Merge this into the original $state
+			}
+		}
 
 		// Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
 		$json = json_encode($state, JSON_FORCE_OBJECT);
