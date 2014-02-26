@@ -10,6 +10,7 @@ class TestSessionController extends Controller {
 		'set',
 		'end',
 		'clear',
+		'browsersessionstate',
 		'StartForm',
 		'ProgressForm',
 	);
@@ -85,6 +86,29 @@ class TestSessionController extends Controller {
 		$this->environment->startTestSession($params);
 		
 		return $this->renderWith('TestSession_inprogress');
+	}
+
+	/**
+	 * Set $_SESSION state for the current browser session.
+	 */
+	public function browsersessionstate($request) {
+		if(!$this->environment->isRunningTests()) {
+			throw new LogicException("No test session in progress.");
+		}
+
+		$newSessionStates = array_diff_key($request->getVars(), array('url' => true));
+		if(!$newSessionStates) {
+			throw new LogicException('No query parameters detected');
+		}
+
+		$sessionStates = (array)Session::get('_TestSessionController.BrowserSessionState');
+		
+		foreach($newSessionStates as $k => $v) {
+			Session::set($k, $v);
+		}
+
+		// Track which state we're setting so we can unset later in end()
+		Session::set('_TestSessionController.BrowserSessionState', array_merge($sessionStates, $newSessionStates));
 	}
 
 	public function StartForm() {
@@ -230,6 +254,15 @@ class TestSessionController extends Controller {
 		}
 
 		$this->environment->endTestSession();
+
+		// Clear out all PHP session states which have been set previously
+		if($sessionStates = Session::get('_TestSessionController.BrowserSessionState')) {
+			foreach($sessionStates as $k => $v) {
+				Session::clear($k);
+			}
+			Session::clear('_TestSessionController');	
+		}
+
 
 		return $this->renderWith('TestSession_end');
 	}

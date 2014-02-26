@@ -2,6 +2,9 @@
 
 ## Overview
 
+*IMPORTANT: This module poses a security risk if used on production servers.*
+*It is a testing module not intended for production use.*
+
 This module starts a testing session in a browser,
 in order to test a SilverStripe application in a clean state.
 Usually the session is started on a fresh database with only default records loaded.
@@ -39,6 +42,8 @@ Commands:
  * `dev/testsession/end`: Removes the test state, and resets to the original database.
  * `dev/testsession/loadfixture?fixture=<path>`: Loads a fixture into an existing test state.
  * `dev/testsession/clear`: Empties the test state.
+ * `dev/testsession/browsersessionstate`: Set or unset browser session state (different from test session state).
+   Use query parameters to define states.
 
 While you can use the interface to set the test session state,
 it can be useful to set them programmatically through query parameters
