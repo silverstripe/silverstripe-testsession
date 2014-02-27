@@ -128,22 +128,24 @@ class TestSessionEnvironment extends Object {
 			}
 		}
 
-		if(!DB::getConn()) {
-			// No connection, so try and connect to tmpdb if it exists
-			if(isset($state->database)) {
-				$this->oldDatabaseName = $databaseConfig['database'];
-				$databaseConfig['database'] = $state->database;
-			}
+		if(isset($state->database) && $state->database) {
+			if(!DB::getConn()) {
+				// No connection, so try and connect to tmpdb if it exists
+				if(isset($state->database)) {
+					$this->oldDatabaseName = $databaseConfig['database'];
+					$databaseConfig['database'] = $state->database;
+				}
 
-			// Connect to database
-			DB::connect($databaseConfig);
-		} else {
-			// We've already connected to the database, do a fast check to see what database we're currently using
-			$db = DB::query("SELECT DATABASE()")->value();
-			if(isset($state->database) && $db != $state->database) {
-				$this->oldDatabaseName = $databaseConfig['database'];
-				$databaseConfig['database'] = $state->database;
+				// Connect to database
 				DB::connect($databaseConfig);
+			} else {
+				// We've already connected to the database, do a fast check to see what database we're currently using
+				$db = DB::query("SELECT DATABASE()")->value();
+				if(isset($state->database) && $db != $state->database) {
+					$this->oldDatabaseName = $databaseConfig['database'];
+					$databaseConfig['database'] = $state->database;
+					DB::connect($databaseConfig);
+				}
 			}
 		}
 
@@ -245,11 +247,6 @@ class TestSessionEnvironment extends Object {
 			try {
 				$contents = file_get_contents(Director::getAbsFile($this->config()->test_state_file));
 				$json = json_decode($contents);
-
-				if(!isset($json->database)) {
-					throw new \LogicException('The test session file ('
-						. Director::getAbsFile($this->config()->test_state_file) . ') doesn\'t contain a database name.');
-				}
 
 				$this->applyState($json);
 			} catch(Exception $e) {
