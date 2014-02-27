@@ -2,8 +2,8 @@
 
 ## Overview
 
-*IMPORTANT: This module poses a security risk if used on production servers.*
-*It is a testing module not intended for production use.*
+*IMPORTANT: This module is intended for development and testing, it poses a security risk if used on production servers.*
+*It's completely possible to allow any user to become an admin, or do other nefarious things, if this is installed on a live site*
 
 This module starts a testing session in a browser,
 in order to test a SilverStripe application in a clean state.
