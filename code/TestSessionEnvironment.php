@@ -39,18 +39,6 @@ class TestSessionEnvironment extends Object {
 	private static $test_state_file;
 
 	/**
-	 * @var TestSessionEnvironment A singleton of this TestSessionEnvironment, for use with ::inst()
-	 */
-	private static $instance = null;
-
-	public static function inst() {
-		if (!self::$instance) {
-			self::$instance = new TestSessionEnvironment();
-		}
-		return self::$instance;
-	}
-
-	/**
 	 * Tests for the existence of the file specified by $this->test_state_file
 	 */
 	public function isRunningTests() {
