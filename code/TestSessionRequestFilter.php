@@ -3,11 +3,20 @@
  * Sets state previously initialized through {@link TestSessionController}.
  */
 class TestSessionRequestFilter {
+
+	/**
+	 * @var TestSessionEnvironment
+	 */
+	protected $testSessionEnvironment;
+
+	public function __construct() {
+		$this->testSessionEnvironment = Injector::inst()->get('testSessionEnvironment');
+	}
 	
 	public function preRequest($req, $session, $model) {
-		if(!Injector::inst()->get('TestSessionEnvironment')->isRunningTests()) return;
+		if(!$this->testSessionEnvironment->isRunningTests()) return;
 
-		$testState = Injector::inst()->get('TestSessionEnvironment')->getState();
+		$testState = $this->testSessionEnvironment->getState();
 
 		// Date and time
 		if(isset($testState->datetime)) {
@@ -38,5 +47,11 @@ class TestSessionRequestFilter {
 	}
 
 	public function postRequest() {
+		if(!$this->testSessionEnvironment->isRunningTests()) return;
+		
+		// Store PHP session
+		$state = $this->testSessionEnvironment->getState();
+		$state->session = Session::get_all();
+		$this->testSessionEnvironment->persistState();
 	}
 }

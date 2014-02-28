@@ -38,6 +38,16 @@ class TestSessionEnvironment extends Object {
 	 */
 	private static $test_state_file;
 
+	public function __construct() {
+		parent::__construct();
+
+		if($this->isRunningTests()) {
+			$this->state = json_decode(file_get_contents(Director::getAbsFile($this->config()->test_state_file)));	
+		} else {
+			$this->state = new stdClass;	
+		}
+	}
+
 	/**
 	 * Tests for the existence of the file specified by $this->test_state_file
 	 */
@@ -248,8 +258,11 @@ class TestSessionEnvironment extends Object {
 	/**
 	 * Writes $this->state JSON object into the $this->config()->test_state_file file.
 	 */
-	private function persistState() {
-		file_put_contents(Director::getAbsFile($this->config()->test_state_file), json_encode($this->state));
+	public function persistState() {
+		file_put_contents(
+			Director::getAbsFile($this->config()->test_state_file), 
+			json_encode($this->state, JSON_PRETTY_PRINT)
+		);
 	}
 
 	private function removeStateFile() {
