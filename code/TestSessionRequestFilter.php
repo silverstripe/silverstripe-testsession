@@ -52,6 +52,6 @@ class TestSessionRequestFilter {
 		// Store PHP session
 		$state = $this->testSessionEnvironment->getState();
 		$state->session = Session::get_all();
-		$this->testSessionEnvironment->persistState();
+		$this->testSessionEnvironment->applyState($state);
 	}
 }

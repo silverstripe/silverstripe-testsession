@@ -10,19 +10,26 @@
  * for example: Behat CLI starts a testsession, then opens a web browser which
  * makes a separate request picking up the same testsession.
  *
+ * An environment can have an optional identifier ({@link id}), which allows
+ * multiple environments to exist at the same time in the same webroot.
+ * This enables parallel testing with (mostly) isolated state. 
+ *
+ * For a valid test session to exist, this needs to contain at least:
+ *  - database: The alternate database name that is being used for this test session (e.g. ss_tmpdb_1234567)
+ * It can optionally contain other details that should be passed through many separate requests:
+ *  - datetime: Mocked SS_DateTime ({@see TestSessionRequestFilter})
+ *  - mailer: Mocked Email sender ({@see TestSessionRequestFilter})
+ *  - stubfile: Path to PHP stub file for setup ({@see TestSessionRequestFilter})
+ * Extensions of TestSessionEnvironment can add extra fields in here to be saved and restored on each request.
+ *
  * See {@link $state} for default information stored in the test session.
  */
 class TestSessionEnvironment extends Object {
+	
 	/**
-	 * @var stdClass Test session state. For a valid test session to exist, this needs to contain at least:
-	 *     - database: The alternate database name that is being used for this test session (e.g. ss_tmpdb_1234567)
-	 * It can optionally contain other details that should be passed through many separate requests:
-	 *     - datetime: Mocked SS_DateTime ({@see TestSessionRequestFilter})
-	 *     - mailer: Mocked Email sender ({@see TestSessionRequestFilter})
-	 *     - stubfile: Path to PHP stub file for setup ({@see TestSessionRequestFilter})
-	 * Extensions of TestSessionEnvironment can add extra fields in here to be saved and restored on each request.
+	 * @var int Optional identifier for the session.
 	 */
-	private $state;
+	protected $id;
 
 	/**
 	 * @var string The original database name, before we overrode it with our tmpdb.
@@ -38,13 +45,20 @@ class TestSessionEnvironment extends Object {
 	 */
 	private static $test_state_file;
 
-	public function __construct() {
+	public function __construct($id = null) {
 		parent::__construct();
 
-		if($this->isRunningTests()) {
-			$this->state = json_decode(file_get_contents(Director::getAbsFile($this->config()->test_state_file)));	
+		$this->id = $id;
+	}
+
+	/**
+	 * @return String Absolute path to the file persisting our state.
+	 */
+	public function getFilePath() {
+		if($this->id) {
+			return Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));	
 		} else {
-			$this->state = new stdClass;	
+			return Director::getAbsFile($this->config()->test_state_file);	
 		}
 	}
 
@@ -52,7 +66,7 @@ class TestSessionEnvironment extends Object {
 	 * Tests for the existence of the file specified by $this->test_state_file
 	 */
 	public function isRunningTests() {
-		return(file_exists(Director::getAbsFile($this->config()->test_state_file)));
+		return(file_exists($this->getFilePath()));
 	}
 
 	/**
@@ -68,7 +82,9 @@ class TestSessionEnvironment extends Object {
 	 *
 	 * @param array $state An array of test state options to write.
 	 */
-	public function startTestSession($state) {
+	public function startTestSession($state, $id = null) {
+		$this->removeStateFile();
+
 		$extendedState = $this->extend('onBeforeStartTestSession', $state);
 
 		// $extendedState is now a multi-dimensional array (if extensions exist)
@@ -84,7 +100,6 @@ class TestSessionEnvironment extends Object {
 		$state = json_decode($json);
 
 		$this->applyState($state);
-		$this->persistState();
 
 		$this->extend('onAfterStartTestSession');
 	}
@@ -97,7 +112,6 @@ class TestSessionEnvironment extends Object {
 		$state = json_decode($json);
 
 		$this->applyState($state);
-		$this->persistState();
 
 		$this->extend('onAfterUpdateTestSession');
 	}
@@ -106,7 +120,7 @@ class TestSessionEnvironment extends Object {
 	 * Assumes the database has already been created in startTestSession(), as this method can be called from
 	 * _config.php where we don't yet have a DB connection.
 	 *
-	 * Does not persist the state to the filesystem, see {@link self::persistState()}.
+	 * Persists the state to the filesystem.
 	 *
 	 * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
 	 * onAfterApplyState() to add your own test state handling in.
@@ -120,13 +134,13 @@ class TestSessionEnvironment extends Object {
 		$this->extend('onBeforeApplyState', $state);
 
 		// Load existing state from $this->state into $state, if there is any
-		if($this->state) {
-			foreach($this->state as $k => $v) {
+		$oldState = $this->getState();
+		if($oldState) {
+			foreach($oldState as $k => $v) {
 				if(!isset($state->$k)) $state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
 			}
 		}
-
-		if(isset($state->database) && $state->database) {
+  		if(isset($state->database) && $state->database) {
 			if(!DB::getConn()) {
 				// No connection, so try and connect to tmpdb if it exists
 				if(isset($state->database)) {
@@ -235,7 +249,10 @@ class TestSessionEnvironment extends Object {
 			}
 		}
 
-		$this->state = $state;
+		file_put_contents(
+			$this->getFilePath(), 
+			json_encode($state, JSON_PRETTY_PRINT)
+		);
 
 		$this->extend('onAfterApplyState');
 	}
@@ -243,30 +260,20 @@ class TestSessionEnvironment extends Object {
 	public function loadFromFile() {
 		if($this->isRunningTests()) {
 			try {
-				$contents = file_get_contents(Director::getAbsFile($this->config()->test_state_file));
+				$contents = file_get_contents($this->getFilePath());
 				$json = json_decode($contents);
 
 				$this->applyState($json);
 			} catch(Exception $e) {
 				throw new \Exception("A test session appears to be in progress, but we can't retrieve the details. "
-					. "Try removing the " . Director::getAbsFile($this->config()->test_state_file) . " file. Inner "
+					. "Try removing the " . $this->getFilePath() . " file. Inner "
 					. "error: " . $e->getMessage());
 			}
 		}
 	}
 
-	/**
-	 * Writes $this->state JSON object into the $this->config()->test_state_file file.
-	 */
-	public function persistState() {
-		file_put_contents(
-			Director::getAbsFile($this->config()->test_state_file), 
-			json_encode($this->state, JSON_PRETTY_PRINT)
-		);
-	}
-
 	private function removeStateFile() {
-		$file = Director::getAbsFile($this->config()->test_state_file);
+		$file = $this->getFilePath();
 		if(file_exists($file)) {
 			if(!unlink($file)) {
 				throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
@@ -322,7 +329,9 @@ class TestSessionEnvironment extends Object {
 		$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
 		$fixture->writeInto($factory);
 
-		$this->state->fixtures[] = $fixtureFile;
+		$state = $this->getState();
+		$state->fixtures[] = $fixtureFile;
+		$this->applyState($state);
 
 		return $fixture;
 	}
@@ -342,6 +351,7 @@ class TestSessionEnvironment extends Object {
 	 * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
 	 */
 	public function getState() {
-		return $this->state;
+		$path = Director::getAbsFile($this->config()->test_state_file);
+		return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
 	}
 }
