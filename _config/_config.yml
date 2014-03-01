@@ -6,8 +6,3 @@ Injector:
     properties:
       filters:
         - '%$TestSessionRequestFilter'
----
-Name: testsession-setup
----
-TestSessionEnvironment:
-  test_state_file: TESTS_RUNNING.json

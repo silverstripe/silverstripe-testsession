@@ -13,7 +13,10 @@ Further data can be loaded from YAML fixtures or database dumps.
 The session is persisted in a file which is generated upon starting the session.
 As long as this file exists, the test session is considered in progress,
 both in web browsers and command-line execution. By default, the file
-is stored in the webroot under `TESTS_RUNNING.js`.
+is stored in the webroot under `TESTS_RUNNING-<id>.js`. The `<id>` value
+is a random token stored in the browser session, in order to make the
+test session specific to the executing browser, and allow multiple
+people using their own test session in the same webroot.
 
 The module also serves as an initializer for the
 [SilverStripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).

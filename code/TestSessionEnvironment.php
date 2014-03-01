@@ -43,7 +43,13 @@ class TestSessionEnvironment extends Object {
 	 * @var string Path (from web-root) to the test state file that indicates a testsession is in progress.
 	 * Defaults to value stored in testsession/_config/_config.yml
 	 */
-	private static $test_state_file;
+	private static $test_state_file = 'TESTS_RUNNING.json';
+
+	/**
+	 * @config
+	 * @var [type]
+	 */
+	private static $test_state_id_file = 'TESTS_RUNNING-%s.json';
 
 	public function __construct($id = null) {
 		parent::__construct();
@@ -84,6 +90,7 @@ class TestSessionEnvironment extends Object {
 	 */
 	public function startTestSession($state, $id = null) {
 		$this->removeStateFile();
+		$this->id = $id;
 
 		$extendedState = $this->extend('onBeforeStartTestSession', $state);
 

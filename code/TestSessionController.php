@@ -30,7 +30,7 @@ class TestSessionController extends Controller {
 	public function __construct() {
 		parent::__construct();
 
-		$this->environment = Injector::inst()->get('TestSessionEnvironment');
+		$this->environment = Injector::inst()->get('TestSessionEnvironment', Session::get('TestSessionId'));
 	}
 
 	public function init() {
@@ -68,6 +68,10 @@ class TestSessionController extends Controller {
 	public function start() {
 		$params = $this->request->requestVars();
 
+		$generator = Injector::inst()->get('RandomGenerator');
+		$id = substr($generator->randomToken(), 0, 10);
+		Session::set('TestSessionId', $id);
+
 		// Convert datetime from form object into a single string
 		$params = $this->fixDatetimeFormField($params);
 
@@ -83,7 +87,7 @@ class TestSessionController extends Controller {
 			)
 		);
 
-		$this->environment->startTestSession($params);
+		$this->environment->startTestSession($params, $id);
 		
 		return $this->renderWith('TestSession_inprogress');
 	}
@@ -255,6 +259,7 @@ class TestSessionController extends Controller {
 		}
 
 		$this->environment->endTestSession();
+		Session::clear('TestSessionId');
 
 		// Clear out all PHP session states which have been set previously
 		if($sessionStates = Session::get('_TestSessionController.BrowserSessionState')) {
