@@ -10,10 +10,7 @@ class TestSessionRequestFilter {
 	protected $testSessionEnvironment;
 
 	public function __construct() {
-		$this->testSessionEnvironment = Injector::inst()->get(
-			'TestSessionEnvironment',
-			Session::get('TestSessionId')
-		);
+		$this->testSessionEnvironment = Injector::inst()->get('TestSessionEnvironment');
 	}
 	
 	public function preRequest($req, $session, $model) {

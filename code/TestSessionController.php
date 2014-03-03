@@ -30,7 +30,7 @@ class TestSessionController extends Controller {
 	public function __construct() {
 		parent::__construct();
 
-		$this->environment = Injector::inst()->get('TestSessionEnvironment', Session::get('TestSessionId'));
+		$this->environment = Injector::inst()->get('TestSessionEnvironment');
 	}
 
 	public function init() {

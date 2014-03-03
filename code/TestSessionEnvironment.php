@@ -54,7 +54,12 @@ class TestSessionEnvironment extends Object {
 	public function __construct($id = null) {
 		parent::__construct();
 
-		$this->id = $id;
+		if($id) {
+			$this->id = $id;
+		} else {
+			Session::start();
+			$this->id = Session::get('TestSessionId');
+		}
 	}
 
 	/**
@@ -73,6 +78,20 @@ class TestSessionEnvironment extends Object {
 	 */
 	public function isRunningTests() {
 		return(file_exists($this->getFilePath()));
+	}
+
+	/**
+	 * @param String $id
+	 */
+	public function setId($id) {
+		$this->id = $id;
+	}
+
+	/**
+	 * @return String
+	 */
+	public function getId() {
+		return $this->id;
 	}
 
 	/**
