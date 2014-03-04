@@ -166,6 +166,7 @@ class TestSessionEnvironment extends Object {
 				if(!isset($state->$k)) $state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
 			}
 		}
+
   		if(isset($state->database) && $state->database) {
 			if(!DB::getConn()) {
 				// No connection, so try and connect to tmpdb if it exists
@@ -377,7 +378,7 @@ class TestSessionEnvironment extends Object {
 	 * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
 	 */
 	public function getState() {
-		$path = Director::getAbsFile($this->config()->test_state_file);
+		$path = Director::getAbsFile($this->getFilePath());
 		return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
 	}
 }
