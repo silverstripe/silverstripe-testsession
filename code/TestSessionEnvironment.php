@@ -67,10 +67,16 @@ class TestSessionEnvironment extends Object {
 	 */
 	public function getFilePath() {
 		if($this->id) {
-			return Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));	
+			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
 		} else {
-			return Director::getAbsFile($this->config()->test_state_file);	
+			$path = Director::getAbsFile($this->config()->test_state_file);
 		}
+
+		if(!is_writable(dirname($path))) {
+			$path = str_replace(Director::baseFolder(), TEMP_FOLDER, $path);
+		}
+
+		return $path;
 	}
 
 	/**
