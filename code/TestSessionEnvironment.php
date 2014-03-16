@@ -67,9 +67,9 @@ class TestSessionEnvironment extends Object {
 	 */
 	public function getFilePath() {
 		if($this->id) {
-			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
+			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));	
 		} else {
-			$path = Director::getAbsFile($this->config()->test_state_file);
+			$path = Director::getAbsFile($this->config()->test_state_file);	
 		}
 
 		if(!is_writable(dirname($path))) {
@@ -161,106 +161,57 @@ class TestSessionEnvironment extends Object {
 	 * @throws InvalidArgumentException
 	 */
 	public function applyState($state) {
-		global $databaseConfig;
-
 		$this->extend('onBeforeApplyState', $state);
+
+		$database = (isset($state->database)) ? $state->database : null;
+
+		// back up source
+		global $databaseConfig;
+		$this->oldDatabaseName = $databaseConfig['database'];
 
 		// Load existing state from $this->state into $state, if there is any
 		$oldState = $this->getState();
+
 		if($oldState) {
 			foreach($oldState as $k => $v) {
-				if(!isset($state->$k)) $state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
+				if(!isset($state->$k)) {
+					$state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
+				}
 			}
 		}
 
-  		if(isset($state->database) && $state->database) {
-			if(!DB::getConn()) {
-				// No connection, so try and connect to tmpdb if it exists
-				if(isset($state->database)) {
-					$this->oldDatabaseName = $databaseConfig['database'];
-					$databaseConfig['database'] = $state->database;
-				}
+		// ensure we have a connection to the database
+  		if($database) {
+			$conn = DB::getConn();
 
-				// Connect to database
-				DB::connect($databaseConfig);
-			} else {
-				// We've already connected to the database, do a fast check to see what database we're currently using
-				$db = DB::query("SELECT DATABASE()")->value();
-				if(isset($state->database) && $db != $state->database) {
-					$this->oldDatabaseName = $databaseConfig['database'];
-					$databaseConfig['database'] = $state->database;
-					DB::connect($databaseConfig);
-				}
+			if(!$conn) {
+				$conn = DB::connect($databaseConfig);
 			}
+
+			$conn->selectDatabase($database);
+		} else {
+			$state->database = SapphireTest::create_temp_db();
 		}
 
 		// Database
-		if(!$this->isRunningTests() && (@$state->createDatabase || @$state->database)) {
-			$dbName = (isset($state->database)) ? $state->database : null;
-
-			if($dbName) {
-				$dbExists = (bool)DB::query(
-					sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
-				)->value();
-			} else {
-				$dbExists = false;
-			}
-
-			if(!$dbExists) {
-				// Create a new one with a randomized name
-				$dbName = SapphireTest::create_temp_db();
-
-				$state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
-
-				// Set existing one, assumes it already has been created
-				$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
-				$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
-				if(!preg_match($pattern, $dbName)) {
-					throw new InvalidArgumentException("Invalid database name format");
-				}
-
-				$this->oldDatabaseName = $databaseConfig['database'];
-				$databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
-
-				// Connect to the new database, overwriting the old DB connection (if any)
-				DB::connect($databaseConfig);
-			}
-
-			// Import database template if required
-			if(isset($state->createDatabaseTemplate) && $state->createDatabaseTemplate) {
-				$sql = file_get_contents($state->createDatabaseTemplate);
-				// Split into individual query commands, removing comments
-				$sqlCmds = array_filter(
-					preg_split('/\s*;\s*/',
-						preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
-					)
-				);
-
-				// Execute each query
-				foreach($sqlCmds as $sqlCmd) {
-					DB::query($sqlCmd);
-				}
-
-				// In case the dump involved CREATE TABLE commands, we need to ensure
-				// the schema is still up to date
-				$dbAdmin = new DatabaseAdmin();
-				$populate = (isset($state->requireDefaultRecords) && $state->requireDefaultRecords);
-				Versioned::set_reading_mode('');
-				$dbAdmin->doBuild(true /*quiet*/, $populate);
-			}
-
-			if(isset($state->createDatabase)) unset($state->createDatabase);
+		if(isset($state->createDatabase)) {
+			$this->createDatabaseForState($state);
+			
+			unset($state->createDatabase);
 		}
 
 		// Fixtures
 		$fixtureFile = (isset($state->fixture)) ? $state->fixture : null;
+
 		if($fixtureFile) {
 			$this->loadFixtureIntoDb($fixtureFile);
-			unset($state->fixture); // Only insert the fixture(s) once, not every time we call this method
+
+			unset($state->fixture);
 		}
 
 		// Mailer
 		$mailer = (isset($state->mailer)) ? $state->mailer : null;
+
 		if($mailer) {
 			if(!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
 				throw new InvalidArgumentException(sprintf(
@@ -282,12 +233,55 @@ class TestSessionEnvironment extends Object {
 			}
 		}
 
-		file_put_contents(
-			$this->getFilePath(), 
-			json_encode($state, JSON_PRETTY_PRINT)
-		);
-
+		$this->saveState($state);
 		$this->extend('onAfterApplyState');
+	}
+
+	/**
+	 * Import the database
+	 *
+	 * @return void
+	 */
+	public function createDatabaseForState($state) {
+		if(isset($state->createDatabaseTemplate) && $state->createDatabaseTemplate) {
+			$sql = file_get_contents($state->createDatabaseTemplate);
+
+			// Split into individual query commands, removing comments
+			$sqlCmds = array_filter(
+				preg_split('/\s*;\s*/',
+					preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
+				)
+			);
+
+			// Execute each query
+			foreach($sqlCmds as $sqlCmd) {
+				DB::query($sqlCmd);
+			}
+
+			// In case the dump involved CREATE TABLE commands, we need to ensure
+			// the schema is still up to date
+			$dbAdmin = new DatabaseAdmin();
+			$populate = (isset($state->requireDefaultRecords) && $state->requireDefaultRecords);
+
+			Versioned::set_reading_mode('');
+			$dbAdmin->doBuild(true, $populate);
+
+			unset($state->createDatabaseTemplate);
+		}
+
+		return $state;
+	}
+
+	/**
+	 * Sliented as if the file already exists by another process, we don't want 
+	 * to modify.
+	 */
+	public function saveState($state) {
+		@file_put_contents(
+			$this->getFilePath(), 
+			json_encode($state, JSON_PRETTY_PRINT),
+			LOCK_EX
+		);
 	}
 
 	public function loadFromFile() {
@@ -307,6 +301,7 @@ class TestSessionEnvironment extends Object {
 
 	private function removeStateFile() {
 		$file = $this->getFilePath();
+
 		if(file_exists($file)) {
 			if(!unlink($file)) {
 				throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
@@ -331,6 +326,8 @@ class TestSessionEnvironment extends Object {
 
 		if(SapphireTest::using_temp_db()) {
 			$this->resetDatabaseName();
+
+			SapphireTest::set_is_running_test(false);
 		}
 
 		$this->removeStateFile();
@@ -373,11 +370,17 @@ class TestSessionEnvironment extends Object {
 	 * Reset the database connection to use the original database. Called by {@link self::endTestSession()}.
 	 */
 	public function resetDatabaseName() {
-		global $databaseConfig;
+		if($this->oldDatabaseName) {
+			global $databaseConfig;
 
-		$databaseConfig['database'] = $this->oldDatabaseName;
+			$databaseConfig['database'] = $this->oldDatabaseName;
 
-		DB::connect($databaseConfig);
+			$conn = DB::getConn();
+
+			if($conn) {
+				$conn->selectDatabase($this->oldDatabaseName);
+			}
+		}
 	}
 
 	/**
