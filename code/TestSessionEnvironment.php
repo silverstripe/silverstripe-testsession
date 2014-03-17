@@ -185,7 +185,8 @@ class TestSessionEnvironment extends Object {
 			$conn = DB::getConn();
 
 			if(!$conn) {
-				$conn = DB::connect($databaseConfig);
+				DB::connect($databaseConfig);
+				$conn = DB::getConn();
 			}
 
 			$conn->selectDatabase($database);
