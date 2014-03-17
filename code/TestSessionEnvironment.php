@@ -72,10 +72,6 @@ class TestSessionEnvironment extends Object {
 			$path = Director::getAbsFile($this->config()->test_state_file);	
 		}
 
-		if(!is_writable(dirname($path))) {
-			$path = str_replace(Director::baseFolder(), TEMP_FOLDER, $path);
-		}
-
 		return $path;
 	}
 
