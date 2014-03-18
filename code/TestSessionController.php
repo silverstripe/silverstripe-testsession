@@ -89,6 +89,22 @@ class TestSessionController extends Controller {
 
 		$this->environment->startTestSession($params, $id);
 		
+		// Optionally import database
+		if(!empty($params['importDatabasePath'])) {
+			$this->environment->importDatabase(
+				$params['importDatabasePath'],
+				!empty($params['requireDefaultRecords']) ? $params['requireDefaultRecords'] : false
+			);
+		} else if(!empty($params['requireDefaultRecords']) && $params['requireDefaultRecords']) {
+			$this->environment->requireDefaultRecords();
+		}
+
+		// Fixtures
+		$fixtureFile = (!empty($params['fixture'])) ? $params['fixture'] : null;
+		if($fixtureFile) {
+			$this->environment->loadFixtureIntoDb($fixtureFile);
+		}
+		
 		return $this->renderWith('TestSession_inprogress');
 	}
 
@@ -122,7 +138,7 @@ class TestSessionController extends Controller {
 		);
 		if($databaseTemplates) {
 			$fields->push(
-				$dropdown = new DropdownField('createDatabaseTemplate', false)
+				$dropdown = new DropdownField('importDatabasePath', false)
 			);
 
 			$dropdown->setSource($databaseTemplates)
