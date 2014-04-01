@@ -278,10 +278,12 @@ class TestSessionEnvironment extends Object {
 			}
 		}
 
-		file_put_contents(
-			$this->getFilePath(), 
-			json_encode($state, JSON_PRETTY_PRINT)
-		);
+		if (defined('JSON_PRETTY_PRINT')) {
+			$content = json_encode($state, JSON_PRETTY_PRINT);
+		} else {
+			$content = json_encode($state);
+		}
+		file_put_contents($this->getFilePath(), $content);
 
 		$this->extend('onAfterApplyState');
 	}
