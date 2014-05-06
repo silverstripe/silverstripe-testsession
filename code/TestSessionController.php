@@ -68,9 +68,13 @@ class TestSessionController extends Controller {
 	public function start() {
 		$params = $this->request->requestVars();
 
-		$generator = Injector::inst()->get('RandomGenerator');
-		$id = substr($generator->randomToken(), 0, 10);
-		Session::set('TestSessionId', $id);
+		if(!empty($params['globalTestSession'])) {
+			$id = null;
+		} else {
+			$generator = Injector::inst()->get('RandomGenerator');
+			$id = substr($generator->randomToken(), 0, 10);
+			Session::set('TestSessionId', $id);
+		}
 
 		// Convert datetime from form object into a single string
 		$params = $this->fixDatetimeFormField($params);
@@ -145,6 +149,12 @@ class TestSessionController extends Controller {
 				->setEmptyString('Empty database');
 		}
 		$fields->push(new CheckboxField('requireDefaultRecords', 'Create default data?'));
+		if(Director::isDev()) {
+			$fields->push(
+				CheckboxField::create('globalTestSession', 'Use global test session?')
+					->setDescription('Caution: Will apply to all users across browsers')
+			);
+		}
 		$fields->merge($this->getBaseFields());
 		$form = new Form(
 			$this, 

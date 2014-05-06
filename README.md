@@ -67,6 +67,8 @@ on "dev/testsession/start":
  * `mailer`: Subclass of `Mailer`, typically used to record emails instead of actually sending them.
  * `datetime`: Sets a simulated date used for all framework operations.
     Format as "yyyy-MM-dd HH:mm:ss" (Example: "2012-12-31 18:40:59").
+ * `globalTestSession`: Activate test session independently of the current browser session,
+    effectively setting the site into test session mode for all users. Only available in "dev" mode.
 
 Example usage with parameters:
 
