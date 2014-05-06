@@ -44,7 +44,10 @@ class TestSessionController extends Controller {
 		);
 		if(!$canAccess) return Security::permissionFailure($this);
 
+		Requirements::css('//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css');
+		Requirements::css('//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css');
 		Requirements::javascript('framework/thirdparty/jquery/jquery.js');
+		Requirements::javascript('//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js');
 		Requirements::javascript('testsession/javascript/testsession.js');
 	}
 
@@ -54,9 +57,9 @@ class TestSessionController extends Controller {
 
 	public function index() {
 		if($this->environment->isRunningTests()) {
-			return $this->renderWith('TestSession_inprogress');
+			return $this->renderWith('TestSession', 'TestSession_inprogress');
 		} else {
-			return $this->renderWith('TestSession_start');
+			return $this->renderWith(array('TestSession', 'TestSession_start'));
 		}
 	}
 	
@@ -109,7 +112,7 @@ class TestSessionController extends Controller {
 			$this->environment->loadFixtureIntoDb($fixtureFile);
 		}
 		
-		return $this->renderWith('TestSession_inprogress');
+		return $this->renderWith('TestSession', 'TestSession_inprogress');
 	}
 
 	/**
@@ -161,7 +164,8 @@ class TestSessionController extends Controller {
 			'StartForm',
 			$fields,
 			new FieldList(
-				new FormAction('start', 'Start Session')
+				FormAction::create('start', 'Start Session')
+					->addExtraClass('btn btn-primary btn-lg')
 			)
 		);
 		
