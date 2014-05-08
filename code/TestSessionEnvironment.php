@@ -114,15 +114,8 @@ class TestSessionEnvironment extends Object {
 		$this->removeStateFile();
 		$this->id = $id;
 
-		$extendedState = $this->extend('onBeforeStartTestSession', $state);
-
-		// $extendedState is now a multi-dimensional array (if extensions exist)
-		if($extendedState && is_array($extendedState)) {
-			foreach($extendedState as $stateVal) {
-				// $stateVal is one extension's additions to $state
-				$state = array_merge($state, $stateVal); // Merge this into the original $state
-			}
-		}
+		// Assumes state will be modified by reference
+		$this->extend('onBeforeStartTestSession', $state);
 
 		// Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
 		$json = json_encode($state, JSON_FORCE_OBJECT);
