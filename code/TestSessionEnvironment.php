@@ -271,7 +271,7 @@ class TestSessionEnvironment extends Object {
 
 		// Split into individual query commands, removing comments
 		$sqlCmds = array_filter(
-			preg_split('/\s*;\s*/',
+			preg_split('/;\n/',
 				preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
 			)
 		);
