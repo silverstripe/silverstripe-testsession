@@ -58,7 +58,9 @@ class TestSessionEnvironment extends Object {
 			$this->id = $id;
 		} else {
 			Session::start();
-			$this->id = Session::get('TestSessionId');
+			// $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
+			// as part of the issue, easiest resolution is to use session directly for now
+			$this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;
 		}
 	}
 
