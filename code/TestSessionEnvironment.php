@@ -185,7 +185,7 @@ class TestSessionEnvironment extends Object {
 				DB::connect($databaseConfig);
 			} else {
 				// We've already connected to the database, do a fast check to see what database we're currently using
-				$db = DB::query("SELECT DATABASE()")->value();
+				$db = DB::getConn()->currentDatabase();
 				if(isset($state->database) && $db != $state->database) {
 					$this->oldDatabaseName = $databaseConfig['database'];
 					$databaseConfig['database'] = $state->database;
@@ -199,9 +199,7 @@ class TestSessionEnvironment extends Object {
 			$dbName = (isset($state->database)) ? $state->database : null;
 
 			if($dbName) {
-				$dbExists = (bool)DB::query(
-					sprintf("SHOW DATABASES LIKE '%s'", Convert::raw2sql($dbName))
-				)->value();
+				$dbExists = DB::getConn()->databaseExists($dbName);
 			} else {
 				$dbExists = false;
 			}
