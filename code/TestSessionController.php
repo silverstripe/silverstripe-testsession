@@ -37,7 +37,7 @@ class TestSessionController extends Controller {
 		parent::init();
 
 		$this->extend('init');
-		
+
 		$canAccess = (
 			!Director::isLive()
 			&& (Director::isDev() || Director::isTest() || Director::is_cli() || Permission::check("ADMIN"))
@@ -59,7 +59,7 @@ class TestSessionController extends Controller {
 			return $this->renderWith('TestSession_start');
 		}
 	}
-	
+
 	/**
 	 * Start a test session. If you wish to extend how the test session is started (and add additional test state),
 	 * then take a look at {@link TestSessionEnvironment::startTestSession()} and
@@ -92,7 +92,7 @@ class TestSessionController extends Controller {
 		);
 
 		$this->environment->startTestSession($params, $id);
-		
+
 		// Optionally import database
 		if(!empty($params['importDatabasePath'])) {
 			$this->environment->importDatabase(
@@ -108,7 +108,7 @@ class TestSessionController extends Controller {
 		if($fixtureFile) {
 			$this->environment->loadFixtureIntoDb($fixtureFile);
 		}
-		
+
 		return $this->renderWith('TestSession_inprogress');
 	}
 
@@ -126,7 +126,7 @@ class TestSessionController extends Controller {
 		}
 
 		$sessionStates = (array)Session::get('_TestSessionController.BrowserSessionState');
-		
+
 		foreach($newSessionStates as $k => $v) {
 			Session::set($k, $v);
 		}
@@ -157,14 +157,14 @@ class TestSessionController extends Controller {
 		}
 		$fields->merge($this->getBaseFields());
 		$form = new Form(
-			$this, 
+			$this,
 			'StartForm',
 			$fields,
 			new FieldList(
 				new FormAction('start', 'Start Session')
 			)
 		);
-		
+
 		$this->extend('updateStartForm', $form);
 
 		return $form;
@@ -176,15 +176,15 @@ class TestSessionController extends Controller {
 	public function ProgressForm() {
 		$fields = $this->getBaseFields();
 		$form = new Form(
-			$this, 
+			$this,
 			'ProgressForm',
 			$fields,
 			new FieldList(
 				new FormAction('set', 'Set testing state')
 			)
 		);
-		
-		
+
+
 		$form->setFormAction($this->Link('set'));
 
 		$this->extend('updateProgressForm', $form);
@@ -216,8 +216,8 @@ class TestSessionController extends Controller {
 	}
 
 	public function DatabaseName() {
-		$db = DB::getConn();
-		if(method_exists($db, 'currentDatabase')) return $db->currentDatabase();
+		$db = DB::get_conn();
+		return $db->getSelectedDatabase();
 	}
 
 	/**
@@ -264,7 +264,7 @@ class TestSessionController extends Controller {
 		if(SapphireTest::using_temp_db()) {
 			SapphireTest::empty_temp_db();
 		}
-		
+
 		if(isset($_SESSION['_testsession_codeblocks'])) {
 			unset($_SESSION['_testsession_codeblocks']);
 		}
@@ -292,7 +292,7 @@ class TestSessionController extends Controller {
 			foreach($sessionStates as $k => $v) {
 				Session::clear($k);
 			}
-			Session::clear('_TestSessionController');	
+			Session::clear('_TestSessionController');
 		}
 
 
@@ -332,17 +332,17 @@ class TestSessionController extends Controller {
 	/**
 	 * Get all *.sql database files located in a specific path,
 	 * keyed by their file name.
-	 * 
+	 *
 	 * @param  String $path Absolute folder path
 	 * @return array
 	 */
 	protected function getDatabaseTemplates($path = null) {
 		$templates = array();
-		
+
 		if(!$path) {
 			$path = $this->config()->database_templates_path;
 		}
-		
+
 		// TODO Remove once we can set BASE_PATH through the config layer
 		if($path && !Director::is_absolute($path)) {
 			$path = BASE_PATH . '/' . $path;

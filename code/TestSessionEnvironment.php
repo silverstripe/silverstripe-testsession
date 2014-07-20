@@ -12,7 +12,7 @@
  *
  * An environment can have an optional identifier ({@link id}), which allows
  * multiple environments to exist at the same time in the same webroot.
- * This enables parallel testing with (mostly) isolated state. 
+ * This enables parallel testing with (mostly) isolated state.
  *
  * For a valid test session to exist, this needs to contain at least:
  *  - database: The alternate database name that is being used for this test session (e.g. ss_tmpdb_1234567)
@@ -25,7 +25,7 @@
  * See {@link $state} for default information stored in the test session.
  */
 class TestSessionEnvironment extends Object {
-	
+
 	/**
 	 * @var int Optional identifier for the session.
 	 */
@@ -69,9 +69,9 @@ class TestSessionEnvironment extends Object {
 	 */
 	public function getFilePath() {
 		if($this->id) {
-			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));	
+			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
 		} else {
-			$path = Director::getAbsFile($this->config()->test_state_file);	
+			$path = Director::getAbsFile($this->config()->test_state_file);
 		}
 
 		return $path;
@@ -174,7 +174,7 @@ class TestSessionEnvironment extends Object {
 
 		// ensure we have a connection to the database
   		if(isset($state->database) && $state->database) {
-			if(!DB::getConn()) {
+			if(!DB::get_conn()) {
 				// No connection, so try and connect to tmpdb if it exists
 				if(isset($state->database)) {
 					$this->oldDatabaseName = $databaseConfig['database'];
@@ -185,7 +185,7 @@ class TestSessionEnvironment extends Object {
 				DB::connect($databaseConfig);
 			} else {
 				// We've already connected to the database, do a fast check to see what database we're currently using
-				$db = DB::getConn()->currentDatabase();
+				$db = DB::get_conn()->getSelectedDatabase();
 				if(isset($state->database) && $db != $state->database) {
 					$this->oldDatabaseName = $databaseConfig['database'];
 					$databaseConfig['database'] = $state->database;
@@ -199,7 +199,7 @@ class TestSessionEnvironment extends Object {
 			$dbName = (isset($state->database)) ? $state->database : null;
 
 			if($dbName) {
-				$dbExists = DB::getConn()->databaseExists($dbName);
+				$dbExists = DB::get_conn()->databaseExists($dbName);
 			} else {
 				$dbExists = false;
 			}
@@ -290,7 +290,7 @@ class TestSessionEnvironment extends Object {
 	}
 
 	/**
-	 * Sliented as if the file already exists by another process, we don't want 
+	 * Sliented as if the file already exists by another process, we don't want
 	 * to modify.
 	 */
 	public function saveState($state) {
@@ -393,10 +393,10 @@ class TestSessionEnvironment extends Object {
 
 			$databaseConfig['database'] = $this->oldDatabaseName;
 
-			$conn = DB::getConn();
+			$conn = DB::get_conn();
 
 			if($conn) {
-				$conn->selectDatabase($this->oldDatabaseName);
+				$conn->selectDatabase($this->oldDatabaseName, false, false);
 			}
 		}
 	}

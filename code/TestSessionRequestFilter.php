@@ -2,7 +2,7 @@
 /**
  * Sets state previously initialized through {@link TestSessionController}.
  */
-class TestSessionRequestFilter {
+class TestSessionRequestFilter implements RequestFilter {
 
 	/**
 	 * @var TestSessionEnvironment
@@ -12,8 +12,8 @@ class TestSessionRequestFilter {
 	public function __construct() {
 		$this->testSessionEnvironment = Injector::inst()->get('TestSessionEnvironment');
 	}
-	
-	public function preRequest($req, $session, $model) {
+
+	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
 		if(!$this->testSessionEnvironment->isRunningTests()) return;
 
 		$testState = $this->testSessionEnvironment->getState();
@@ -46,9 +46,9 @@ class TestSessionRequestFilter {
 		}
 	}
 
-	public function postRequest() {
+	public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		if(!$this->testSessionEnvironment->isRunningTests()) return;
-		
+
 		// Store PHP session
 		$state = $this->testSessionEnvironment->getState();
 		$state->session = Session::get_all();
