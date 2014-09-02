@@ -30,7 +30,7 @@ into a temporary database table for inspection by the CLI-based process.
 
 Simply require the module in a SilverStripe webroot (3.0 or newer):
 
-  composer require silverstripe/behat-extension
+	composer require --dev silverstripe/behat-extension
 
 ## Usage
 
