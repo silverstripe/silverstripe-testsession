@@ -3,7 +3,7 @@
 ## Overview
 
 *IMPORTANT: This module is intended for development and testing, it poses a security risk if used on production servers.*
-*It's completely possible to allow any user to become an admin, or do other nefarious things, if this is installed on a live site*
+*It's completely possible to allow any user to become an admin, or do other nefarious things, if this is installed on a live site.*
 
 This module starts a testing session in a browser,
 in order to test a SilverStripe application in a clean state.
@@ -13,7 +13,7 @@ Further data can be loaded from YAML fixtures or database dumps.
 The session is persisted in a file which is generated upon starting the session.
 As long as this file exists, the test session is considered in progress,
 both in web browsers and command-line execution. By default, the file
-is stored in the webroot under `TESTS_RUNNING-<id>.js`. The `<id>` value
+is stored in the webroot under `assets/TESTS_RUNNING-<id>.json`. The `<id>` value
 is a random token stored in the browser session, in order to make the
 test session specific to the executing browser, and allow multiple
 people using their own test session in the same webroot.
@@ -68,7 +68,10 @@ on "dev/testsession/start":
  * `datetime`: Sets a simulated date used for all framework operations.
     Format as "yyyy-MM-dd HH:mm:ss" (Example: "2012-12-31 18:40:59").
  * `globalTestSession`: Activate test session independently of the current browser session,
-    effectively setting the site into test session mode for all users. Only available in "dev" mode.
+    effectively setting the site into test session mode for all users across different browsers. 
+	Only available in "dev" mode. For example, create a global test session in Chrome, then you can share 
+	the session data in Firefox. But if you have started a non-global session in a browser before starting 
+	a global session somewhere else, that non-global session will take priority in that browser.
 
 Example usage with parameters:
 
