@@ -299,7 +299,9 @@ class TestSessionEnvironment extends Object {
 		} else {
 			$content = json_encode($state);
 		}
+		$old = umask(0);
 		file_put_contents($this->getFilePath(), $content, LOCK_EX);
+		umask($old);
 	}
 
 	public function loadFromFile() {
