@@ -53,7 +53,7 @@ it can be useful to set them programmatically through query parameters
 on "dev/testsession/start":
 
  * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest` 
-   (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
+   (see [fixture format docs](http://doc.silverstripe.org/en/developer_guides/testing/fixtures/)). 
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
  * `createDatabaseTemplate`: Path to a database dump to load into a newly created temporary database.
