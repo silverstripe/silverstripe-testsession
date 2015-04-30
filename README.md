@@ -1,5 +1,7 @@
 # Browser Test Session Module
 
+[![Build Status](https://travis-ci.org/silverstripe-labs/silverstripe-testsession.svg)](https://travis-ci.org/silverstripe-labs/silverstripe-testsession)
+
 ## Overview
 
 *IMPORTANT: This module is intended for development and testing, it poses a security risk if used on production servers.*
