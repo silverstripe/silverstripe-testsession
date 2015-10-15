@@ -94,9 +94,24 @@ class TestSessionController extends Controller {
 		$this->environment->startTestSession($params, $id);
 
 		// Optionally import database
-		if(!empty($params['importDatabasePath'])) {
+		if(!empty($params['importDatabasePath']) || !empty($params['importDatabaseFilename'])) {
+			$absPath = '';
+			
+			// by path
+			if(!empty($params['importDatabasePath'])) {
+				$absPath = $params['importDatabasePath'];
+				
+			// by filename
+			}else if(!empty($params['importDatabaseFilename'])) {
+				foreach($this->getDatabaseTemplates() as $tAbsPath => $tFilename){
+					if($tFilename === $params['importDatabaseFilename']){
+						$absPath = $tAbsPath;
+						break;
+					}
+				}
+			}
 			$this->environment->importDatabase(
-				$params['importDatabasePath'],
+				$absPath,
 				!empty($params['requireDefaultRecords']) ? $params['requireDefaultRecords'] : false
 			);
 		} else if(!empty($params['requireDefaultRecords']) && $params['requireDefaultRecords']) {
