@@ -5,7 +5,7 @@ language: php
 sudo: false
 
 php: 
- - 5.3
+ - 5.5
 
 env:
   matrix:
@@ -19,8 +19,6 @@ matrix:
       env: DB=MYSQL CORE_RELEASE=master
     - php: 5.3
       env: DB=MYSQL CORE_RELEASE=3.2
-    - php: 5.5
-      env: DB=MYSQL CORE_RELEASE=master
 
 before_script:
  - phpenv rehash
