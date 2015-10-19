@@ -56,7 +56,8 @@ on "dev/testsession/start":
    (see [fixture format docs](http://doc.silverstripe.org/framework/en/topics/testing/fixtures)). 
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
- * `createDatabaseTemplate`: Path to a database dump to load into a newly created temporary database.
+ * `importDatabasePath`: Absolute path to a database dump to load into a newly created temporary database.
+ * `importDatabaseFilename`: File name for a database dump to load, relative to `TestSessionController.database_templates_path`
  * `requireDefaultRecords`: Include default records as defined on the model classes (in PHP)
  * `database`: Set an alternative database name in the current 
     browser session as a cookie. Does not actually create the database, 
