@@ -59,7 +59,7 @@ on "dev/testsession/start":
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
  * `importDatabasePath`: Absolute path to a database dump to load into a newly created temporary database.
- * `importDatabaseFile`: File name for a database dump to load, relative to `TestSessionController.database_templates_path`
+ * `importDatabaseFilename`: File name for a database dump to load, relative to `TestSessionController.database_templates_path`
  * `requireDefaultRecords`: Include default records as defined on the model classes (in PHP)
  * `database`: Set an alternative database name in the current 
     browser session as a cookie. Does not actually create the database, 
