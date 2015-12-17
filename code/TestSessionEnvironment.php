@@ -24,390 +24,410 @@
  *
  * See {@link $state} for default information stored in the test session.
  */
-class TestSessionEnvironment extends Object {
+class TestSessionEnvironment extends Object
+{
 
-	/**
-	 * @var int Optional identifier for the session.
-	 */
-	protected $id;
+    /**
+     * @var int Optional identifier for the session.
+     */
+    protected $id;
 
-	/**
-	 * @var string The original database name, before we overrode it with our tmpdb.
-	 *
-	 * Used in {@link self::resetDatabaseName()} when we want to restore the normal DB connection.
-	 */
-	private $oldDatabaseName;
+    /**
+     * @var string The original database name, before we overrode it with our tmpdb.
+     *
+     * Used in {@link self::resetDatabaseName()} when we want to restore the normal DB connection.
+     */
+    private $oldDatabaseName;
 
-	/**
-	 * @config
-	 * @var string Path (from web-root) to the test state file that indicates a testsession is in progress.
-	 * Defaults to value stored in testsession/_config/_config.yml
-	 */
-	private static $test_state_file = 'TESTS_RUNNING.json';
+    /**
+     * @config
+     * @var string Path (from web-root) to the test state file that indicates a testsession is in progress.
+     * Defaults to value stored in testsession/_config/_config.yml
+     */
+    private static $test_state_file = 'TESTS_RUNNING.json';
 
-	/**
-	 * @config
-	 * @var [type]
-	 */
-	private static $test_state_id_file = 'TESTS_RUNNING-%s.json';
+    /**
+     * @config
+     * @var [type]
+     */
+    private static $test_state_id_file = 'TESTS_RUNNING-%s.json';
 
-	public function __construct($id = null) {
-		parent::__construct();
+    public function __construct($id = null)
+    {
+        parent::__construct();
 
-		if($id) {
-			$this->id = $id;
-		} else {
-			Session::start();
-			// $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
-			// as part of the issue, easiest resolution is to use session directly for now
-			$this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;
-		}
-	}
+        if ($id) {
+            $this->id = $id;
+        } else {
+            Session::start();
+            // $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
+            // as part of the issue, easiest resolution is to use session directly for now
+            $this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;
+        }
+    }
 
-	/**
-	 * @return String Absolute path to the file persisting our state.
-	 */
-	public function getFilePath() {
-		if($this->id) {
-			$path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
-		} else {
-			$path = Director::getAbsFile($this->config()->test_state_file);
-		}
+    /**
+     * @return String Absolute path to the file persisting our state.
+     */
+    public function getFilePath()
+    {
+        if ($this->id) {
+            $path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
+        } else {
+            $path = Director::getAbsFile($this->config()->test_state_file);
+        }
 
-		return $path;
-	}
+        return $path;
+    }
 
-	/**
-	 * Tests for the existence of the file specified by $this->test_state_file
-	 */
-	public function isRunningTests() {
-		return(file_exists($this->getFilePath()));
-	}
+    /**
+     * Tests for the existence of the file specified by $this->test_state_file
+     */
+    public function isRunningTests()
+    {
+        return(file_exists($this->getFilePath()));
+    }
 
-	/**
-	 * @param String $id
-	 */
-	public function setId($id) {
-		$this->id = $id;
-	}
+    /**
+     * @param String $id
+     */
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
 
-	/**
-	 * @return String
-	 */
-	public function getId() {
-		return $this->id;
-	}
+    /**
+     * @return String
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
 
-	/**
-	 * Creates a temp database, sets up any extra requirements, and writes the state file. The database will be
-	 * connected to as part of {@link self::applyState()}, so if you're continuing script execution after calling this
-	 * method, be aware that the database will be different - so various things may break (e.g. administrator logins
-	 * using the SS_DEFAULT_USERNAME / SS_DEFAULT_PASSWORD constants).
-	 *
-	 * If something isn't explicitly handled here, and needs special handling, then it should be taken care of by an
-	 * extension to TestSessionEnvironment. You can either extend onBeforeStartTestSession() or
-	 * onAfterStartTestSession(). Alternatively, for more fine-grained control, you can also extend
-	 * onBeforeApplyState() and onAfterApplyState(). See the {@link self::applyState()} method for more.
-	 *
-	 * @param array $state An array of test state options to write.
-	 */
-	public function startTestSession($state = null, $id = null) {
-		if(!$state) $state = array();
-		$this->removeStateFile();
-		$this->id = $id;
+    /**
+     * Creates a temp database, sets up any extra requirements, and writes the state file. The database will be
+     * connected to as part of {@link self::applyState()}, so if you're continuing script execution after calling this
+     * method, be aware that the database will be different - so various things may break (e.g. administrator logins
+     * using the SS_DEFAULT_USERNAME / SS_DEFAULT_PASSWORD constants).
+     *
+     * If something isn't explicitly handled here, and needs special handling, then it should be taken care of by an
+     * extension to TestSessionEnvironment. You can either extend onBeforeStartTestSession() or
+     * onAfterStartTestSession(). Alternatively, for more fine-grained control, you can also extend
+     * onBeforeApplyState() and onAfterApplyState(). See the {@link self::applyState()} method for more.
+     *
+     * @param array $state An array of test state options to write.
+     */
+    public function startTestSession($state = null, $id = null)
+    {
+        if (!$state) {
+            $state = array();
+        }
+        $this->removeStateFile();
+        $this->id = $id;
 
-		// Assumes state will be modified by reference
-		$this->extend('onBeforeStartTestSession', $state);
+        // Assumes state will be modified by reference
+        $this->extend('onBeforeStartTestSession', $state);
 
-		// Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
-		$json = json_encode($state, JSON_FORCE_OBJECT);
-		$state = json_decode($json);
+        // Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
+        $json = json_encode($state, JSON_FORCE_OBJECT);
+        $state = json_decode($json);
 
-		$this->applyState($state);
+        $this->applyState($state);
 
-		$this->extend('onAfterStartTestSession');
-	}
+        $this->extend('onAfterStartTestSession');
+    }
 
-	public function updateTestSession($state) {
-		$this->extend('onBeforeUpdateTestSession', $state);
+    public function updateTestSession($state)
+    {
+        $this->extend('onBeforeUpdateTestSession', $state);
 
-		// Convert to JSON and back so we can share the appleState() code between this and ->loadFromFile()
-		$json = json_encode($state, JSON_FORCE_OBJECT);
-		$state = json_decode($json);
+        // Convert to JSON and back so we can share the appleState() code between this and ->loadFromFile()
+        $json = json_encode($state, JSON_FORCE_OBJECT);
+        $state = json_decode($json);
 
-		$this->applyState($state);
+        $this->applyState($state);
 
-		$this->extend('onAfterUpdateTestSession');
-	}
+        $this->extend('onAfterUpdateTestSession');
+    }
 
-	/**
-	 * Assumes the database has already been created in startTestSession(), as this method can be called from
-	 * _config.php where we don't yet have a DB connection.
-	 *
-	 * Persists the state to the filesystem.
-	 *
-	 * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
-	 * onAfterApplyState() to add your own test state handling in.
-	 *
-	 * @throws LogicException
-	 * @throws InvalidArgumentException
-	 */
-	public function applyState($state) {
-		$this->extend('onBeforeApplyState', $state);
+    /**
+     * Assumes the database has already been created in startTestSession(), as this method can be called from
+     * _config.php where we don't yet have a DB connection.
+     *
+     * Persists the state to the filesystem.
+     *
+     * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
+     * onAfterApplyState() to add your own test state handling in.
+     *
+     * @throws LogicException
+     * @throws InvalidArgumentException
+     */
+    public function applyState($state)
+    {
+        $this->extend('onBeforeApplyState', $state);
 
-		$database = (isset($state->database)) ? $state->database : null;
+        $database = (isset($state->database)) ? $state->database : null;
 
-		// back up source
-		global $databaseConfig;
-		$this->oldDatabaseName = $databaseConfig['database'];
+        // back up source
+        global $databaseConfig;
+        $this->oldDatabaseName = $databaseConfig['database'];
 
-		// Load existing state from $this->state into $state, if there is any
-		$oldState = $this->getState();
+        // Load existing state from $this->state into $state, if there is any
+        $oldState = $this->getState();
 
-		if($oldState) {
-			foreach($oldState as $k => $v) {
-				if(!isset($state->$k)) {
-					$state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
-				}
-			}
-		}
+        if ($oldState) {
+            foreach ($oldState as $k => $v) {
+                if (!isset($state->$k)) {
+                    $state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
+                }
+            }
+        }
 
-		// ensure we have a connection to the database
-  		if(isset($state->database) && $state->database) {
-			if(!DB::get_conn()) {
-				// No connection, so try and connect to tmpdb if it exists
-				if(isset($state->database)) {
-					$this->oldDatabaseName = $databaseConfig['database'];
-					$databaseConfig['database'] = $state->database;
-				}
+        // ensure we have a connection to the database
+        if (isset($state->database) && $state->database) {
+            if (!DB::get_conn()) {
+                // No connection, so try and connect to tmpdb if it exists
+                if (isset($state->database)) {
+                    $this->oldDatabaseName = $databaseConfig['database'];
+                    $databaseConfig['database'] = $state->database;
+                }
 
-				// Connect to database
-				DB::connect($databaseConfig);
-			} else {
-				// We've already connected to the database, do a fast check to see what database we're currently using
-				$db = DB::get_conn()->getSelectedDatabase();
-				if(isset($state->database) && $db != $state->database) {
-					$this->oldDatabaseName = $databaseConfig['database'];
-					$databaseConfig['database'] = $state->database;
-					DB::connect($databaseConfig);
-				}
-			}
-		}
+                // Connect to database
+                DB::connect($databaseConfig);
+            } else {
+                // We've already connected to the database, do a fast check to see what database we're currently using
+                $db = DB::get_conn()->getSelectedDatabase();
+                if (isset($state->database) && $db != $state->database) {
+                    $this->oldDatabaseName = $databaseConfig['database'];
+                    $databaseConfig['database'] = $state->database;
+                    DB::connect($databaseConfig);
+                }
+            }
+        }
 
-		// Database
-		if(!$this->isRunningTests()) {
-			$dbName = (isset($state->database)) ? $state->database : null;
+        // Database
+        if (!$this->isRunningTests()) {
+            $dbName = (isset($state->database)) ? $state->database : null;
 
-			if($dbName) {
-				$dbExists = DB::get_conn()->databaseExists($dbName);
-			} else {
-				$dbExists = false;
-			}
+            if ($dbName) {
+                $dbExists = DB::get_conn()->databaseExists($dbName);
+            } else {
+                $dbExists = false;
+            }
 
-			if(!$dbExists) {
-				// Create a new one with a randomized name
-				$dbName = SapphireTest::create_temp_db();
+            if (!$dbExists) {
+                // Create a new one with a randomized name
+                $dbName = SapphireTest::create_temp_db();
 
-				$state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
+                $state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
 
-				// Set existing one, assumes it already has been created
-				$prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
-				$pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
-				if(!preg_match($pattern, $dbName)) {
-					throw new InvalidArgumentException("Invalid database name format");
-				}
+                // Set existing one, assumes it already has been created
+                $prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
+                $pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
+                if (!preg_match($pattern, $dbName)) {
+                    throw new InvalidArgumentException("Invalid database name format");
+                }
 
-				$this->oldDatabaseName = $databaseConfig['database'];
-				$databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
+                $this->oldDatabaseName = $databaseConfig['database'];
+                $databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
 
-				// Connect to the new database, overwriting the old DB connection (if any)
-				DB::connect($databaseConfig);
-			}
-		}
+                // Connect to the new database, overwriting the old DB connection (if any)
+                DB::connect($databaseConfig);
+            }
+        }
 
-		// Mailer
-		$mailer = (isset($state->mailer)) ? $state->mailer : null;
+        // Mailer
+        $mailer = (isset($state->mailer)) ? $state->mailer : null;
 
-		if($mailer) {
-			if(!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
-				throw new InvalidArgumentException(sprintf(
-					'Class "%s" is not a valid class, or subclass of Mailer',
-					$mailer
-				));
-			}
-		}
+        if ($mailer) {
+            if (!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
+                throw new InvalidArgumentException(sprintf(
+                    'Class "%s" is not a valid class, or subclass of Mailer',
+                    $mailer
+                ));
+            }
+        }
 
-		// Date and time
-		if(isset($state->datetime)) {
-			require_once 'Zend/Date.php';
-			// Convert DatetimeField format
-			if(!Zend_Date::isDate($state->datetime, 'yyyy-MM-dd HH:mm:ss')) {
-				throw new LogicException(sprintf(
-					'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
-					$state->datetime
-				));
-			}
-		}
+        // Date and time
+        if (isset($state->datetime)) {
+            require_once 'Zend/Date.php';
+            // Convert DatetimeField format
+            if (!Zend_Date::isDate($state->datetime, 'yyyy-MM-dd HH:mm:ss')) {
+                throw new LogicException(sprintf(
+                    'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
+                    $state->datetime
+                ));
+            }
+        }
 
-		$this->saveState($state);
-		$this->extend('onAfterApplyState');
-	}
+        $this->saveState($state);
+        $this->extend('onAfterApplyState');
+    }
 
-	/**
-	 * Import the database
-	 *
-	 * @param String $path Absolute path to a SQL dump (include DROP TABLE commands)
-	 * @return void
-	 */
-	public function importDatabase($path, $requireDefaultRecords = false) {
-		$sql = file_get_contents($path);
+    /**
+     * Import the database
+     *
+     * @param String $path Absolute path to a SQL dump (include DROP TABLE commands)
+     * @return void
+     */
+    public function importDatabase($path, $requireDefaultRecords = false)
+    {
+        $sql = file_get_contents($path);
 
-		// Split into individual query commands, removing comments
-		$sqlCmds = array_filter(
-			preg_split('/;\n/',
-				preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
-			)
-		);
+        // Split into individual query commands, removing comments
+        $sqlCmds = array_filter(
+            preg_split('/;\n/',
+                preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
+            )
+        );
 
-		// Execute each query
-		foreach($sqlCmds as $sqlCmd) {
-			DB::query($sqlCmd);
-		}
+        // Execute each query
+        foreach ($sqlCmds as $sqlCmd) {
+            DB::query($sqlCmd);
+        }
 
-		// In case the dump involved CREATE TABLE commands, we need to ensure the schema is still up to date
-		$dbAdmin = new DatabaseAdmin();
-		Versioned::set_reading_mode('');
-		$dbAdmin->doBuild(true, $requireDefaultRecords);
-	}
+        // In case the dump involved CREATE TABLE commands, we need to ensure the schema is still up to date
+        $dbAdmin = new DatabaseAdmin();
+        Versioned::set_reading_mode('');
+        $dbAdmin->doBuild(true, $requireDefaultRecords);
+    }
 
-	/**
-	 * Build the database with default records, see {@link DataObject->requireDefaultRecords()}.
-	 */
-	public function requireDefaultRecords() {
-		$dbAdmin = new DatabaseAdmin();
-		Versioned::set_reading_mode('');
-		$dbAdmin->doBuild(true, true);
-	}
+    /**
+     * Build the database with default records, see {@link DataObject->requireDefaultRecords()}.
+     */
+    public function requireDefaultRecords()
+    {
+        $dbAdmin = new DatabaseAdmin();
+        Versioned::set_reading_mode('');
+        $dbAdmin->doBuild(true, true);
+    }
 
-	/**
-	 * Sliented as if the file already exists by another process, we don't want
-	 * to modify.
-	 */
-	public function saveState($state) {
-		if (defined('JSON_PRETTY_PRINT')) {
-			$content = json_encode($state, JSON_PRETTY_PRINT);
-		} else {
-			$content = json_encode($state);
-		}
-		$old = umask(0);
-		file_put_contents($this->getFilePath(), $content, LOCK_EX);
-		umask($old);
-	}
+    /**
+     * Sliented as if the file already exists by another process, we don't want
+     * to modify.
+     */
+    public function saveState($state)
+    {
+        if (defined('JSON_PRETTY_PRINT')) {
+            $content = json_encode($state, JSON_PRETTY_PRINT);
+        } else {
+            $content = json_encode($state);
+        }
+        $old = umask(0);
+        file_put_contents($this->getFilePath(), $content, LOCK_EX);
+        umask($old);
+    }
 
-	public function loadFromFile() {
-		if($this->isRunningTests()) {
-			try {
-				$contents = file_get_contents($this->getFilePath());
-				$json = json_decode($contents);
+    public function loadFromFile()
+    {
+        if ($this->isRunningTests()) {
+            try {
+                $contents = file_get_contents($this->getFilePath());
+                $json = json_decode($contents);
 
-				$this->applyState($json);
-			} catch(Exception $e) {
-				throw new \Exception("A test session appears to be in progress, but we can't retrieve the details. "
-					. "Try removing the " . $this->getFilePath() . " file. Inner "
-					. "error: " . $e->getMessage());
-			}
-		}
-	}
+                $this->applyState($json);
+            } catch (Exception $e) {
+                throw new \Exception("A test session appears to be in progress, but we can't retrieve the details. "
+                    . "Try removing the " . $this->getFilePath() . " file. Inner "
+                    . "error: " . $e->getMessage());
+            }
+        }
+    }
 
-	private function removeStateFile() {
-		$file = $this->getFilePath();
+    private function removeStateFile()
+    {
+        $file = $this->getFilePath();
 
-		if(file_exists($file)) {
-			if(!unlink($file)) {
-				throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
-					. 'path: ' . $file);
-			}
-		}
-	}
+        if (file_exists($file)) {
+            if (!unlink($file)) {
+                throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
+                    . 'path: ' . $file);
+            }
+        }
+    }
 
-	/**
-	 * Cleans up the test session state by restoring the normal database connect (for the rest of this request, if any)
-	 * and removes the {@link self::$test_state_file} so that future requests don't use this test state.
-	 *
-	 * Can be extended by implementing either onBeforeEndTestSession() or onAfterEndTestSession().
-	 *
-	 * This should implement itself cleanly in case it is called twice (e.g. don't throw errors when the state file
-	 * doesn't exist anymore because it's already been cleaned up etc.) This is because during behat test runs where
-	 * a queueing system (e.g. silverstripe-resque) is used, the behat module may call this first, and then the forked
-	 * worker will call it as well - but there is only one state file that is created.
-	 */
-	public function endTestSession() {
-		$this->extend('onBeforeEndTestSession');
+    /**
+     * Cleans up the test session state by restoring the normal database connect (for the rest of this request, if any)
+     * and removes the {@link self::$test_state_file} so that future requests don't use this test state.
+     *
+     * Can be extended by implementing either onBeforeEndTestSession() or onAfterEndTestSession().
+     *
+     * This should implement itself cleanly in case it is called twice (e.g. don't throw errors when the state file
+     * doesn't exist anymore because it's already been cleaned up etc.) This is because during behat test runs where
+     * a queueing system (e.g. silverstripe-resque) is used, the behat module may call this first, and then the forked
+     * worker will call it as well - but there is only one state file that is created.
+     */
+    public function endTestSession()
+    {
+        $this->extend('onBeforeEndTestSession');
 
-		if(SapphireTest::using_temp_db()) {
-			$this->resetDatabaseName();
+        if (SapphireTest::using_temp_db()) {
+            $this->resetDatabaseName();
 
-			SapphireTest::set_is_running_test(false);
-		}
+            SapphireTest::set_is_running_test(false);
+        }
 
-		$this->removeStateFile();
+        $this->removeStateFile();
 
-		$this->extend('onAfterEndTestSession');
-	}
+        $this->extend('onAfterEndTestSession');
+    }
 
-	/**
-	 * Loads a YAML fixture into the database as part of the {@link TestSessionController}.
-	 *
-	 * @param string $fixtureFile The .yml file to load
-	 * @return FixtureFactory The loaded fixture
-	 * @throws LogicException
-	 */
-	public function loadFixtureIntoDb($fixtureFile) {
-		$realFile = realpath(BASE_PATH.'/'.$fixtureFile);
-		$baseDir = realpath(Director::baseFolder());
-		if(!$realFile || !file_exists($realFile)) {
-			throw new LogicException("Fixture file doesn't exist");
-		} else if(substr($realFile,0,strlen($baseDir)) != $baseDir) {
-			throw new LogicException("Fixture file must be inside $baseDir");
-		} else if(substr($realFile,-4) != '.yml') {
-			throw new LogicException("Fixture file must be a .yml file");
-		} else if(!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
-			throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
-		}
+    /**
+     * Loads a YAML fixture into the database as part of the {@link TestSessionController}.
+     *
+     * @param string $fixtureFile The .yml file to load
+     * @return FixtureFactory The loaded fixture
+     * @throws LogicException
+     */
+    public function loadFixtureIntoDb($fixtureFile)
+    {
+        $realFile = realpath(BASE_PATH.'/'.$fixtureFile);
+        $baseDir = realpath(Director::baseFolder());
+        if (!$realFile || !file_exists($realFile)) {
+            throw new LogicException("Fixture file doesn't exist");
+        } elseif (substr($realFile, 0, strlen($baseDir)) != $baseDir) {
+            throw new LogicException("Fixture file must be inside $baseDir");
+        } elseif (substr($realFile, -4) != '.yml') {
+            throw new LogicException("Fixture file must be a .yml file");
+        } elseif (!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
+            throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
+        }
 
-		$factory = Injector::inst()->create('FixtureFactory');
-		$fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
-		$fixture->writeInto($factory);
+        $factory = Injector::inst()->create('FixtureFactory');
+        $fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
+        $fixture->writeInto($factory);
 
-		$state = $this->getState();
-		$state->fixtures[] = $fixtureFile;
-		$this->applyState($state);
+        $state = $this->getState();
+        $state->fixtures[] = $fixtureFile;
+        $this->applyState($state);
 
-		return $fixture;
-	}
+        return $fixture;
+    }
 
-	/**
-	 * Reset the database connection to use the original database. Called by {@link self::endTestSession()}.
-	 */
-	public function resetDatabaseName() {
-		if($this->oldDatabaseName) {
-			global $databaseConfig;
+    /**
+     * Reset the database connection to use the original database. Called by {@link self::endTestSession()}.
+     */
+    public function resetDatabaseName()
+    {
+        if ($this->oldDatabaseName) {
+            global $databaseConfig;
 
-			$databaseConfig['database'] = $this->oldDatabaseName;
+            $databaseConfig['database'] = $this->oldDatabaseName;
 
-			$conn = DB::get_conn();
+            $conn = DB::get_conn();
 
-			if($conn) {
-				$conn->selectDatabase($this->oldDatabaseName, false, false);
-			}
-		}
-	}
+            if ($conn) {
+                $conn->selectDatabase($this->oldDatabaseName, false, false);
+            }
+        }
+    }
 
-	/**
-	 * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
-	 */
-	public function getState() {
-		$path = Director::getAbsFile($this->getFilePath());
-		return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
-	}
+    /**
+     * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
+     */
+    public function getState()
+    {
+        $path = Director::getAbsFile($this->getFilePath());
+        return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
+    }
 }
