@@ -345,6 +345,14 @@ class TestSessionEnvironment extends Object {
 		$this->extend('onBeforeEndTestSession');
 
 		if(SapphireTest::using_temp_db()) {
+            $dbConn = DB::getConn();
+            $dbExists = $dbConn->databaseExists($state->database);
+            if($dbExists) {
+                // Clean up temp database
+                $dbConn->dropDatabase();
+                file_put_contents('php://stdout', "Deleted temp database: $state->database" . PHP_EOL);
+            }
+            // End test session mode
 			$this->resetDatabaseName();
 
 			SapphireTest::set_is_running_test(false);
