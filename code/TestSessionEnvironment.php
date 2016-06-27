@@ -1,5 +1,9 @@
 <?php
 
+use SilverStripe\ORM\DB;
+use SilverStripe\ORM\DatabaseAdmin;
+use SilverStripe\ORM\Versioning\Versioned;
+
 /**
  * Responsible for starting and finalizing test sessions.
  * Since these session span across multiple requests, session information is persisted
