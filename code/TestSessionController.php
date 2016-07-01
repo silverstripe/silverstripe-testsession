@@ -1,4 +1,9 @@
 <?php
+
+use SilverStripe\ORM\DB;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\FieldType\DBHTMLText;
+
 /**
  * Requires PHP's mycrypt extension in order to set the database name as an encrypted cookie.
  */
@@ -55,7 +60,7 @@ class TestSessionController extends Controller
 
     public function Link($action = null)
     {
-        return Controller::join_links(Director::baseUrl(), 'dev/testsession', $action);
+        return Controller::join_links(Director::baseURL(), 'dev/testsession', $action);
     }
 
     public function index()
@@ -104,11 +109,11 @@ class TestSessionController extends Controller
         // Optionally import database
         if (!empty($params['importDatabasePath']) || !empty($params['importDatabaseFilename'])) {
             $absPath = '';
-            
+
             // by path
             if (!empty($params['importDatabasePath'])) {
                 $absPath = $params['importDatabasePath'];
-                
+
             // by filename
             } elseif (!empty($params['importDatabaseFilename'])) {
                 foreach ($this->getDatabaseTemplates() as $tAbsPath => $tFilename) {
@@ -137,6 +142,8 @@ class TestSessionController extends Controller
 
     /**
      * Set $_SESSION state for the current browser session.
+     *
+     * @param SS_HTTPRequest $request
      */
     public function browsersessionstate($request)
     {
@@ -252,7 +259,7 @@ class TestSessionController extends Controller
      * Updates an in-progress {@link TestSessionEnvironment} object with new details. This could be loading in new
      * fixtures, setting the mocked date to another value etc.
      *
-     * @return HTMLText Rendered Template
+     * @return DBHTMLText Rendered Template
      * @throws LogicException
      */
     public function set()

@@ -1,4 +1,9 @@
 <?php
+
+use SilverStripe\ORM\DataModel;
+use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\DB;
+
 /**
  * Sets state previously initialized through {@link TestSessionController}.
  */
@@ -25,13 +30,13 @@ class TestSessionRequestFilter implements RequestFilter
 
         // Date and time
         if (isset($testState->datetime)) {
-            SS_Datetime::set_mock_now($testState->datetime);
+            DBDatetime::set_mock_now($testState->datetime);
         }
 
         // Register mailer
         if (isset($testState->mailer)) {
             $mailer = $testState->mailer;
-            Email::set_mailer(new $mailer());
+            Injector::inst()->registerService(new $mailer(), 'Mailer');
             Config::inst()->update("Email", "send_all_emails_to", null);
         }
 
