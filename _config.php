@@ -1,6 +1,8 @@
 <?php
 
 use SilverStripe\ORM\DB;
+use SilverStripe\Core\Injector\Injector;
+
 
 // Determine whether there is a testsession currently running, and if so - setup the persistent details for it.
 Injector::inst()->get('TestSessionEnvironment')->loadFromFile();

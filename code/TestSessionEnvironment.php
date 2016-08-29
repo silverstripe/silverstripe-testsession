@@ -1,8 +1,15 @@
 <?php
 
+use SilverStripe\Control\Director;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Core\Object;
+use SilverStripe\Dev\FixtureFactory;
+use SilverStripe\Dev\SapphireTest;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\Versioning\Versioned;
+
 
 /**
  * Responsible for starting and finalizing test sessions.
@@ -120,6 +127,7 @@ class TestSessionEnvironment extends Object
      * onBeforeApplyState() and onAfterApplyState(). See the {@link self::applyState()} method for more.
      *
      * @param array $state An array of test state options to write.
+     * @param mixed $id
      */
     public function startTestSession($state = null, $id = null)
     {
@@ -163,14 +171,13 @@ class TestSessionEnvironment extends Object
      * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
      * onAfterApplyState() to add your own test state handling in.
      *
+     * @param mixed $state
      * @throws LogicException
      * @throws InvalidArgumentException
      */
     public function applyState($state)
     {
         $this->extend('onBeforeApplyState', $state);
-
-        $database = (isset($state->database)) ? $state->database : null;
 
         // back up source
         global $databaseConfig;
@@ -244,7 +251,7 @@ class TestSessionEnvironment extends Object
         $mailer = (isset($state->mailer)) ? $state->mailer : null;
 
         if ($mailer) {
-            if (!class_exists($mailer) || !is_subclass_of($mailer, 'Mailer')) {
+            if (!class_exists($mailer) || !is_subclass_of($mailer, 'SilverStripe\\Control\\Email\\Mailer')) {
                 throw new InvalidArgumentException(sprintf(
                     'Class "%s" is not a valid class, or subclass of Mailer',
                     $mailer
@@ -272,7 +279,7 @@ class TestSessionEnvironment extends Object
      * Import the database
      *
      * @param String $path Absolute path to a SQL dump (include DROP TABLE commands)
-     * @return void
+     * @param bool $requireDefaultRecords
      */
     public function importDatabase($path, $requireDefaultRecords = false)
     {
@@ -309,6 +316,8 @@ class TestSessionEnvironment extends Object
     /**
      * Sliented as if the file already exists by another process, we don't want
      * to modify.
+     *
+     * @param mixed $state
      */
     public function saveState($state)
     {
@@ -367,11 +376,11 @@ class TestSessionEnvironment extends Object
 
         if (SapphireTest::using_temp_db()) {
             $state = $this->getState();
-            $dbConn = DB::getConn();
+            $dbConn = DB::get_schema();
             $dbExists = $dbConn->databaseExists($state->database);
             if($dbExists) {
                 // Clean up temp database
-                $dbConn->dropDatabase();
+                $dbConn->dropDatabase($state->database);
                 file_put_contents('php://stdout', "Deleted temp database: $state->database" . PHP_EOL);
             }
             // End test session mode
@@ -406,8 +415,8 @@ class TestSessionEnvironment extends Object
             throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
         }
 
-        $factory = Injector::inst()->create('FixtureFactory');
-        $fixture = Injector::inst()->create('YamlFixture', $fixtureFile);
+        $factory = Injector::inst()->create('SilverStripe\\Dev\\FixtureFactory');
+        $fixture = Injector::inst()->create('SilverStripe\\Dev\\YamlFixture', $fixtureFile);
         $fixture->writeInto($factory);
 
         $state = $this->getState();
