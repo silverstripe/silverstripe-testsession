@@ -1,8 +1,27 @@
 <?php
 
-use SilverStripe\ORM\DB;
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\Director;
+use SilverStripe\Control\Session;
+use SilverStripe\Control\SS_HTTPRequest;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\Deprecation;
+use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Forms\CheckboxField;
+use SilverStripe\Forms\DatetimeField;
+use SilverStripe\Forms\DropdownField;
+use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\Form;
+use SilverStripe\Forms\FormAction;
+use SilverStripe\Forms\HiddenField;
+use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\Security\Permission;
+use SilverStripe\Security\Security;
+use SilverStripe\View\ArrayData;
+use SilverStripe\View\Requirements;
 
 /**
  * Requires PHP's mycrypt extension in order to set the database name as an encrypted cookie.
@@ -51,7 +70,8 @@ class TestSessionController extends Controller
             && (Director::isDev() || Director::isTest() || Director::is_cli() || Permission::check("ADMIN"))
         );
         if (!$canAccess) {
-            return Security::permissionFailure($this);
+            Security::permissionFailure($this);
+            return;
         }
 
         Requirements::javascript('framework/thirdparty/jquery/jquery.js');
@@ -84,7 +104,7 @@ class TestSessionController extends Controller
         if (!empty($params['globalTestSession'])) {
             $id = null;
         } else {
-            $generator = Injector::inst()->get('RandomGenerator');
+            $generator = Injector::inst()->get('SilverStripe\\Security\\RandomGenerator');
             $id = substr($generator->randomToken(), 0, 10);
             Session::set('TestSessionId', $id);
         }
