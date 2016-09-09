@@ -3,7 +3,7 @@
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Session;
-use SilverStripe\Control\SS_HTTPRequest;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\Deprecation;
 use SilverStripe\Dev\SapphireTest;
@@ -163,7 +163,7 @@ class TestSessionController extends Controller
     /**
      * Set $_SESSION state for the current browser session.
      *
-     * @param SS_HTTPRequest $request
+     * @param HTTPRequest $request
      */
     public function browsersessionstate($request)
     {
