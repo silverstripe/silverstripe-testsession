@@ -4,12 +4,13 @@ use SilverStripe\ORM\DataModel;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\DB;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Control\SS_HTTPRequest;
 use SilverStripe\Control\Session;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Control\Director;
-use SilverStripe\Control\SS_HTTPResponse;
 use SilverStripe\Control\RequestFilter;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+
 
 
 /**
@@ -28,7 +29,7 @@ class TestSessionRequestFilter implements RequestFilter
         $this->testSessionEnvironment = Injector::inst()->get('TestSessionEnvironment');
     }
 
-    public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model)
+    public function preRequest(HTTPRequest $request, Session $session, DataModel $model)
     {
         if (!$this->testSessionEnvironment->isRunningTests()) {
             return;
@@ -66,7 +67,7 @@ class TestSessionRequestFilter implements RequestFilter
         }
     }
 
-    public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    public function postRequest(HTTPRequest $request, HTTPResponse $response, DataModel $model)
     {
         if (!$this->testSessionEnvironment->isRunningTests()) {
             return;

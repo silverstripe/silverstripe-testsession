@@ -25,4 +25,4 @@ before_script:
  - cd ~/builds/ss
 
 script:
- - phpunit testsession/tests/unit/
+ - vendor/bin/phpunit testsession/tests/unit/
