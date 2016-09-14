@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<% base_tag %>
 		$MetaTags
-		<% require css('framework/css/debug.css') %>
+        <% require css('framework/client/dist/styles/debug.css') %>
 		<% require css('testsession/css/styles.css') %>
 	</head>
 	<body>
