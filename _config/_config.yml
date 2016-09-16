@@ -1,7 +1,7 @@
 ---
 Name: requestprocessors
 ---
-Injector:
+SilverStripe\Core\Injector\Injector:
   RequestProcessor:
     properties:
       filters:
