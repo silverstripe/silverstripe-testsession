@@ -74,7 +74,7 @@ class TestSessionController extends Controller
             return;
         }
 
-        Requirements::javascript('framework/thirdparty/jquery/jquery.js');
+        Requirements::javascript('http://code.jquery.com/jquery-1.7.2.min.js');
         Requirements::javascript('testsession/javascript/testsession.js');
     }
 
