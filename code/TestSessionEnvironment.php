@@ -8,6 +8,7 @@ use SilverStripe\Dev\FixtureFactory;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\DatabaseAdmin;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\Versioning\Versioned;
 
 
@@ -261,9 +262,10 @@ class TestSessionEnvironment extends Object
 
         // Date and time
         if (isset($state->datetime)) {
-            require_once 'Zend/Date.php';
+            $formatter = DBDatetime::singleton()->getFormatter();
+            $formatter->setPattern(DBDatetime::ISO_DATETIME);
             // Convert DatetimeField format
-            if (!Zend_Date::isDate($state->datetime, 'yyyy-MM-dd HH:mm:ss')) {
+            if ($formatter->parse($state->datetime) === false) {
                 throw new LogicException(sprintf(
                     'Invalid date format "%s", use yyyy-MM-dd HH:mm:ss',
                     $state->datetime
