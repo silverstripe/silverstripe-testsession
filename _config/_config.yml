@@ -1,5 +1,5 @@
 ---
-Name: requestprocessors
+Name: testsessionprocessors
 ---
 SilverStripe\Core\Injector\Injector:
   RequestProcessor:
