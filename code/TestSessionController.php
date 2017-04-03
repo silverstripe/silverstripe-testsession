@@ -255,13 +255,6 @@ class TestSessionController extends Controller
             new HiddenField('flush', null, 1)
         );
         $textfield->setAttribute('placeholder', 'Example: framework/tests/security/MemberTest.yml');
-        $datetimeField->getDateField()
-            ->setConfig('dateformat', 'yyyy-MM-dd')
-            ->setConfig('showcalendar', true)
-            ->setAttribute('placeholder', 'Date (yyyy-MM-dd)');
-        $datetimeField->getTimeField()
-            ->setConfig('timeformat', 'HH:mm:ss')
-            ->setAttribute('placeholder', 'Time (HH:mm:ss)');
         $datetimeField->setValue((isset($testState->datetime) ? $testState->datetime : null));
 
         $this->extend('updateBaseFields', $fields);
