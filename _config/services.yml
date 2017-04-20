@@ -1,0 +1,8 @@
+---
+Name: testsessionservices
+---
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\TestSession\TestSessionEnvironment:
+    class: SilverStripe\TestSession\TestSessionEnvironment
+  # shorthand alias for FQN
+  TestSessionEnvironment: %$SilverStripe\TestSession\TestSessionEnvironment

@@ -1,24 +1,24 @@
 <?php
 
+namespace SilverStripe\TestSession;
+
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\Email\Mailer;
 use SilverStripe\ORM\DataModel;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\DB;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Control\Session;
-use SilverStripe\Core\Config\Config;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\RequestFilter;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
-
-
 
 /**
  * Sets state previously initialized through {@link TestSessionController}.
  */
 class TestSessionRequestFilter implements RequestFilter
 {
-
     /**
      * @var TestSessionEnvironment
      */
@@ -26,12 +26,13 @@ class TestSessionRequestFilter implements RequestFilter
 
     public function __construct()
     {
-        $this->testSessionEnvironment = Injector::inst()->get('TestSessionEnvironment');
+        $this->testSessionEnvironment = TestSessionEnvironment::singleton();
     }
 
     public function preRequest(HTTPRequest $request, Session $session, DataModel $model)
     {
-        if (!$this->testSessionEnvironment->isRunningTests()) {
+        $isRunningTests = $this->testSessionEnvironment->isRunningTests();
+        if (!$isRunningTests) {
             return;
         }
 
@@ -45,8 +46,8 @@ class TestSessionRequestFilter implements RequestFilter
         // Register mailer
         if (isset($testState->mailer)) {
             $mailer = $testState->mailer;
-            Injector::inst()->registerService(new $mailer(), 'SilverStripe\\Control\\Email\\Mailer');
-            Config::inst()->update("SilverStripe\\Control\\Email\\Email", "send_all_emails_to", null);
+            Injector::inst()->registerService(new $mailer(), Mailer::class);
+            Email::config()->set("send_all_emails_to", null);
         }
 
         // Allows inclusion of a PHP file, usually with procedural commands

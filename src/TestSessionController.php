@@ -1,5 +1,7 @@
 <?php
 
+namespace SilverStripe\TestSession;
+
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Session;
@@ -19,9 +21,12 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\Security\Permission;
+use SilverStripe\Security\RandomGenerator;
 use SilverStripe\Security\Security;
 use SilverStripe\View\ArrayData;
 use SilverStripe\View\Requirements;
+use LogicException;
+use FilesystemIterator;
 
 /**
  * Requires PHP's mycrypt extension in order to set the database name as an encrypted cookie.
@@ -56,7 +61,7 @@ class TestSessionController extends Controller
     {
         parent::__construct();
 
-        $this->environment = Injector::inst()->get('TestSessionEnvironment');
+        $this->environment = TestSessionEnvironment::singleton();
     }
 
     public function init()
@@ -75,7 +80,7 @@ class TestSessionController extends Controller
         }
 
         Requirements::javascript('http://code.jquery.com/jquery-1.7.2.min.js');
-        Requirements::javascript('testsession/javascript/testsession.js');
+        Requirements::javascript('testsession/client/js/testsession.js');
     }
 
     public function Link($action = null)
@@ -104,7 +109,7 @@ class TestSessionController extends Controller
         if (!empty($params['globalTestSession'])) {
             $id = null;
         } else {
-            $generator = Injector::inst()->get('SilverStripe\\Security\\RandomGenerator');
+            $generator = Injector::inst()->get(RandomGenerator::class);
             $id = substr($generator->randomToken(), 0, 10);
             Session::set('TestSessionId', $id);
         }
@@ -356,12 +361,6 @@ class TestSessionController extends Controller
     public function isTesting()
     {
         return SapphireTest::using_temp_db();
-    }
-
-    public function setState($data)
-    {
-        Deprecation::notice('3.1', 'TestSessionController::setState() is no longer used, please use '
-            . 'TestSessionEnvironment instead.');
     }
 
     /**

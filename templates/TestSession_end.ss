@@ -5,7 +5,7 @@
 		<% base_tag %>
 		$MetaTags
 		<% require css('framework/client/dist/styles/debug.css') %>
-		<% require css('testsession/css/styles.css') %>
+		<% require css('testsession/client/styles/styles.css') %>
 	</head>
 	<body>
 		<div class="info">

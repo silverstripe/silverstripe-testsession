@@ -1,0 +1,6 @@
+mappings:
+  TestSessionController: SilverStripe\TestSession\TestSessionController
+  TestSessionEnvironment: SilverStripe\TestSession\TestSessionEnvironment
+  TestSessionRequestFilter: SilverStripe\TestSession\TestSessionRequestFilter
+  TestSessionStubCodeWriter: SilverStripe\TestSession\TestSessionStubCodeWriter
+  TestSessionStubCodeWriterTest: SilverStripe\TestSession\Tests\TestSessionStubCodeWriterTest
