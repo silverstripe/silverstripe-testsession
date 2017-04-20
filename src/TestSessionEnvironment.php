@@ -1,16 +1,23 @@
 <?php
 
+namespace SilverStripe\TestSession;
+
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Session;
+use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Extensible;
+use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Core\Object;
 use SilverStripe\Dev\FixtureFactory;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\FieldType\DBDatetime;
-use SilverStripe\ORM\Versioning\Versioned;
-
+use SilverStripe\Versioned\Versioned;
+use InvalidArgumentException;
+use LogicException;
+use Exception;
+use stdClass;
 
 /**
  * Responsible for starting and finalizing test sessions.
@@ -36,8 +43,11 @@ use SilverStripe\ORM\Versioning\Versioned;
  *
  * See {@link $state} for default information stored in the test session.
  */
-class TestSessionEnvironment extends Object
+class TestSessionEnvironment
 {
+    use Injectable;
+    use Configurable;
+    use Extensible;
 
     /**
      * @var int Optional identifier for the session.
@@ -66,7 +76,7 @@ class TestSessionEnvironment extends Object
 
     public function __construct($id = null)
     {
-        parent::__construct();
+        $this->constructExtensions();
 
         if ($id) {
             $this->id = $id;
@@ -288,11 +298,10 @@ class TestSessionEnvironment extends Object
         $sql = file_get_contents($path);
 
         // Split into individual query commands, removing comments
-        $sqlCmds = array_filter(
-            preg_split('/;\n/',
-                preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
-            )
-        );
+        $sqlCmds = array_filter(preg_split(
+            '/;\n/',
+            preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
+        ));
 
         // Execute each query
         foreach ($sqlCmds as $sqlCmd) {
@@ -380,7 +389,7 @@ class TestSessionEnvironment extends Object
             $state = $this->getState();
             $dbConn = DB::get_schema();
             $dbExists = $dbConn->databaseExists($state->database);
-            if($dbExists) {
+            if ($dbExists) {
                 // Clean up temp database
                 $dbConn->dropDatabase($state->database);
                 file_put_contents('php://stdout', "Deleted temp database: $state->database" . PHP_EOL);

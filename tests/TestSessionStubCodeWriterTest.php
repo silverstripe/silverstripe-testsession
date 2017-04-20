@@ -1,6 +1,9 @@
 <?php
 
+namespace SilverStripe\TestSession\Tests;
+
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\TestSession\TestSessionStubCodeWriter;
 
 class TestSessionStubCodeWriterTest extends SapphireTest
 {

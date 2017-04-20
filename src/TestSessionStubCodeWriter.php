@@ -1,11 +1,13 @@
 <?php
+
+namespace SilverStripe\TestSession;
+
 /**
  * Writes PHP to a file which can be included in SilverStripe runs on existence.
  * The generated file is included in page execution through {@link TestSessionRequestFilter}.
  */
 class TestSessionStubCodeWriter
 {
-
     /**
      * @var boolean Add debug statements to the generated PHP about
      * the generator's origin code location.
@@ -26,7 +28,7 @@ class TestSessionStubCodeWriter
      * Writes arbitrary PHP code to {@link $filePath} for later inclusion.
      * Creates the file if it doesn't exist.
      * Adds debug information about the origin of this code if {@link $debug} is set.
-     * 
+     *
      * @param String $php Block of PHP code (without preceding <?php)
      * @param boolean $eval Sanity check on code.
      */

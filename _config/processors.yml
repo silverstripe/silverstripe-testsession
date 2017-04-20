@@ -1,0 +1,8 @@
+---
+Name: testsessionprocessors
+---
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Control\RequestProcessor:
+    properties:
+      filters:
+        - '%$SilverStripe\TestSession\TestSessionRequestFilter'
