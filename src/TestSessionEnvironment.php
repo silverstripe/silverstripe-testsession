@@ -245,7 +245,7 @@ class TestSessionEnvironment
 
                 // Set existing one, assumes it already has been created
                 $prefix = defined('SS_DATABASE_PREFIX') ? SS_DATABASE_PREFIX : 'ss_';
-                $pattern = strtolower(sprintf('#^%stmpdb\d{7}#', $prefix));
+                $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix, '#')));
                 if (!preg_match($pattern, $dbName)) {
                     throw new InvalidArgumentException("Invalid database name format");
                 }
