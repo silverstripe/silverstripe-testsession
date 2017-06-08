@@ -3,6 +3,7 @@
 namespace SilverStripe\TestSession;
 
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\Session;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
@@ -77,11 +78,15 @@ class TestSessionEnvironment
     public function __construct($id = null)
     {
         $this->constructExtensions();
-
         if ($id) {
             $this->id = $id;
-        } else {
-            Session::start();
+        }
+    }
+
+    public function init(HTTPRequest $request)
+    {
+        if (!$this->id) {
+            $request->getSession()->start();
             // $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
             // as part of the issue, easiest resolution is to use session directly for now
             $this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;

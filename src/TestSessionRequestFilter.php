@@ -2,17 +2,16 @@
 
 namespace SilverStripe\TestSession;
 
+use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Control\Email\Mailer;
-use SilverStripe\ORM\DataModel;
-use SilverStripe\ORM\FieldType\DBDatetime;
-use SilverStripe\ORM\DB;
-use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Control\Session;
-use SilverStripe\Control\Director;
-use SilverStripe\Control\RequestFilter;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\RequestFilter;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\ORM\DB;
+use SilverStripe\ORM\FieldType\DBDatetime;
 
 /**
  * Sets state previously initialized through {@link TestSessionController}.
@@ -29,9 +28,10 @@ class TestSessionRequestFilter implements RequestFilter
         $this->testSessionEnvironment = TestSessionEnvironment::singleton();
     }
 
-    public function preRequest(HTTPRequest $request, Session $session, DataModel $model)
+    public function preRequest(HTTPRequest $request)
     {
         $isRunningTests = $this->testSessionEnvironment->isRunningTests();
+        $this->testSessionEnvironment->init($request);
         if (!$isRunningTests) {
             return;
         }
@@ -68,7 +68,7 @@ class TestSessionRequestFilter implements RequestFilter
         }
     }
 
-    public function postRequest(HTTPRequest $request, HTTPResponse $response, DataModel $model)
+    public function postRequest(HTTPRequest $request, HTTPResponse $response)
     {
         if (!$this->testSessionEnvironment->isRunningTests()) {
             return;
