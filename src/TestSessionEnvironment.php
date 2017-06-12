@@ -86,10 +86,10 @@ class TestSessionEnvironment
     public function init(HTTPRequest $request)
     {
         if (!$this->id) {
-            $request->getSession()->start();
+            $request->getSession()->init();
             // $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
             // as part of the issue, easiest resolution is to use session directly for now
-            $this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;
+            $this->id = $request->getSession()->get('TestSessionId');
         }
     }
 

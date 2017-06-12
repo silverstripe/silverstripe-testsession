@@ -8,7 +8,6 @@ use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\RequestFilter;
-use SilverStripe\Control\Session;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
@@ -76,7 +75,7 @@ class TestSessionRequestFilter implements RequestFilter
 
         // Store PHP session
         $state = $this->testSessionEnvironment->getState();
-        $state->session = Session::get_all();
+        $state->session = $request->getSession()->getAll();
         $this->testSessionEnvironment->applyState($state);
     }
 }
