@@ -2,22 +2,21 @@
 
 namespace SilverStripe\TestSession;
 
+use Exception;
+use InvalidArgumentException;
+use LogicException;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\Session;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FixtureFactory;
 use SilverStripe\Dev\SapphireTest;
-use SilverStripe\ORM\DB;
 use SilverStripe\ORM\DatabaseAdmin;
+use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Versioned\Versioned;
-use InvalidArgumentException;
-use LogicException;
-use Exception;
 use stdClass;
 
 /**
@@ -94,7 +93,7 @@ class TestSessionEnvironment
     }
 
     /**
-     * @return String Absolute path to the file persisting our state.
+     * @return string Absolute path to the file persisting our state.
      */
     public function getFilePath()
     {
@@ -401,8 +400,6 @@ class TestSessionEnvironment
             }
             // End test session mode
             $this->resetDatabaseName();
-
-            SapphireTest::set_is_running_test(false);
         }
 
         $this->removeStateFile();
