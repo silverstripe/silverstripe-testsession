@@ -16,6 +16,7 @@ use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\Connect\TempDatabase;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\Security\Permission;
@@ -315,8 +316,9 @@ class TestSessionController extends Controller
 
         $this->extend('onBeforeClear');
 
-        if (SapphireTest::using_temp_db()) {
-            SapphireTest::empty_temp_db();
+        $tempDB = new TempDatabase();
+        if ($tempDB->isUsed()) {
+            $tempDB->clearAllData();
         }
 
         if (isset($_SESSION['_testsession_codeblocks'])) {
@@ -359,7 +361,8 @@ class TestSessionController extends Controller
      */
     public function isTesting()
     {
-        return SapphireTest::using_temp_db();
+        $tempDB = new TempDatabase();
+        return $tempDB->isUsed();
     }
 
     /**
