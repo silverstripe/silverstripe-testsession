@@ -2,21 +2,21 @@
 
 namespace SilverStripe\TestSession;
 
+use Exception;
+use InvalidArgumentException;
+use LogicException;
 use SilverStripe\Control\Director;
-use SilverStripe\Control\Session;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FixtureFactory;
-use SilverStripe\Dev\SapphireTest;
-use SilverStripe\ORM\DB;
+use SilverStripe\ORM\Connect\TempDatabase;
 use SilverStripe\ORM\DatabaseAdmin;
+use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Versioned\Versioned;
-use InvalidArgumentException;
-use LogicException;
-use Exception;
 use stdClass;
 
 /**
@@ -77,19 +77,23 @@ class TestSessionEnvironment
     public function __construct($id = null)
     {
         $this->constructExtensions();
-
         if ($id) {
             $this->id = $id;
-        } else {
-            Session::start();
+        }
+    }
+
+    public function init(HTTPRequest $request)
+    {
+        if (!$this->id) {
+            $request->getSession()->init();
             // $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
             // as part of the issue, easiest resolution is to use session directly for now
-            $this->id = (isset($_SESSION['TestSessionId'])) ? $_SESSION['TestSessionId'] : null;
+            $this->id = $request->getSession()->get('TestSessionId');
         }
     }
 
     /**
-     * @return String Absolute path to the file persisting our state.
+     * @return string Absolute path to the file persisting our state.
      */
     public function getFilePath()
     {
@@ -191,7 +195,7 @@ class TestSessionEnvironment
         $this->extend('onBeforeApplyState', $state);
 
         // back up source
-        global $databaseConfig;
+        $databaseConfig = DB::getConfig();
         $this->oldDatabaseName = $databaseConfig['database'];
 
         // Load existing state from $this->state into $state, if there is any
@@ -239,7 +243,8 @@ class TestSessionEnvironment
 
             if (!$dbExists) {
                 // Create a new one with a randomized name
-                $dbName = SapphireTest::create_temp_db();
+                $tempDB = new TempDatabase();
+                $dbName = $tempDB->build();
 
                 $state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
 
@@ -351,9 +356,12 @@ class TestSessionEnvironment
 
                 $this->applyState($json);
             } catch (Exception $e) {
-                throw new \Exception("A test session appears to be in progress, but we can't retrieve the details. "
-                    . "Try removing the " . $this->getFilePath() . " file. Inner "
-                    . "error: " . $e->getMessage());
+                throw new Exception(
+                    "A test session appears to be in progress, but we can't retrieve the details.\n"
+                    . "Try removing the " . $this->getFilePath() . " file.\n"
+                    . "Inner error: " . $e->getMessage() . "\n"
+                    . "Stacktrace: " . $e->getTraceAsString()
+                );
             }
         }
     }
@@ -385,7 +393,8 @@ class TestSessionEnvironment
     {
         $this->extend('onBeforeEndTestSession');
 
-        if (SapphireTest::using_temp_db()) {
+        $tempDB = new TempDatabase();
+        if ($tempDB->isUsed()) {
             $state = $this->getState();
             $dbConn = DB::get_schema();
             $dbExists = $dbConn->databaseExists($state->database);
@@ -396,8 +405,6 @@ class TestSessionEnvironment
             }
             // End test session mode
             $this->resetDatabaseName();
-
-            SapphireTest::set_is_running_test(false);
         }
 
         $this->removeStateFile();
@@ -443,9 +450,9 @@ class TestSessionEnvironment
     public function resetDatabaseName()
     {
         if ($this->oldDatabaseName) {
-            global $databaseConfig;
-
+            $databaseConfig = DB::getConfig();
             $databaseConfig['database'] = $this->oldDatabaseName;
+            DB::setConfig($databaseConfig);
 
             $conn = DB::get_conn();
 

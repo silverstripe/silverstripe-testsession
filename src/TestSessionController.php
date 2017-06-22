@@ -4,10 +4,8 @@ namespace SilverStripe\TestSession;
 
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
-use SilverStripe\Control\Session;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Dev\Deprecation;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DatetimeField;
@@ -18,6 +16,7 @@ use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\Connect\TempDatabase;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\Security\Permission;
@@ -104,14 +103,14 @@ class TestSessionController extends Controller
      */
     public function start()
     {
-        $params = $this->request->requestVars();
+        $params = $this->getRequest()->requestVars();
 
         if (!empty($params['globalTestSession'])) {
             $id = null;
         } else {
             $generator = Injector::inst()->get(RandomGenerator::class);
             $id = substr($generator->randomToken(), 0, 10);
-            Session::set('TestSessionId', $id);
+            $this->getRequest()->getSession()->set('TestSessionId', $id);
         }
 
         // Convert datetime from form object into a single string
@@ -181,14 +180,15 @@ class TestSessionController extends Controller
             throw new LogicException('No query parameters detected');
         }
 
-        $sessionStates = (array)Session::get('_TestSessionController.BrowserSessionState');
+        $session = $this->getRequest()->getSession();
+        $sessionStates = (array)$session->get('_TestSessionController.BrowserSessionState');
 
         foreach ($newSessionStates as $k => $v) {
-            Session::set($k, $v);
+            $session->set($k, $v);
         }
 
         // Track which state we're setting so we can unset later in end()
-        Session::set('_TestSessionController.BrowserSessionState', array_merge($sessionStates, $newSessionStates));
+        $session->set('_TestSessionController.BrowserSessionState', array_merge($sessionStates, $newSessionStates));
     }
 
     public function StartForm()
@@ -316,8 +316,9 @@ class TestSessionController extends Controller
 
         $this->extend('onBeforeClear');
 
-        if (SapphireTest::using_temp_db()) {
-            SapphireTest::empty_temp_db();
+        $tempDB = new TempDatabase();
+        if ($tempDB->isUsed()) {
+            $tempDB->clearAllData();
         }
 
         if (isset($_SESSION['_testsession_codeblocks'])) {
@@ -341,16 +342,16 @@ class TestSessionController extends Controller
         }
 
         $this->environment->endTestSession();
-        Session::clear('TestSessionId');
+        $session = Controller::curr()->getRequest()->getSession();
+        $session->clear('TestSessionId');
 
         // Clear out all PHP session states which have been set previously
-        if ($sessionStates = Session::get('_TestSessionController.BrowserSessionState')) {
+        if ($sessionStates = $session->get('_TestSessionController.BrowserSessionState')) {
             foreach ($sessionStates as $k => $v) {
-                Session::clear($k);
+                $session->clear($k);
             }
-            Session::clear('_TestSessionController');
+            $session->clear('_TestSessionController');
         }
-
 
         return $this->renderWith('TestSession_end');
     }
@@ -360,7 +361,8 @@ class TestSessionController extends Controller
      */
     public function isTesting()
     {
-        return SapphireTest::using_temp_db();
+        $tempDB = new TempDatabase();
+        return $tempDB->isUsed();
     }
 
     /**
@@ -394,7 +396,7 @@ class TestSessionController extends Controller
         $templates = array();
 
         if (!$path) {
-            $path = $this->config()->database_templates_path;
+            $path = $this->config()->get('database_templates_path');
         }
 
         // TODO Remove once we can set BASE_PATH through the config layer
