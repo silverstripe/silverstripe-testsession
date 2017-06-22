@@ -450,9 +450,9 @@ class TestSessionEnvironment
     public function resetDatabaseName()
     {
         if ($this->oldDatabaseName) {
-            global $databaseConfig;
-
+            $databaseConfig = DB::getConfig();
             $databaseConfig['database'] = $this->oldDatabaseName;
+            DB::setConfig($databaseConfig);
 
             $conn = DB::get_conn();
 
