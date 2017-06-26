@@ -85,7 +85,7 @@ class TestSessionEnvironment
     public function init(HTTPRequest $request)
     {
         if (!$this->id) {
-            $request->getSession()->init();
+            $request->getSession()->init($request);
             // $_SESSION != Session::get() in some execution paths, suspect Controller->pushCurrent()
             // as part of the issue, easiest resolution is to use session directly for now
             $this->id = $request->getSession()->get('TestSessionId');
@@ -98,9 +98,9 @@ class TestSessionEnvironment
     public function getFilePath()
     {
         if ($this->id) {
-            $path = Director::getAbsFile(sprintf($this->config()->test_state_id_file, $this->id));
+            $path = Director::getAbsFile(sprintf($this->config()->get('test_state_id_file'), $this->id));
         } else {
-            $path = Director::getAbsFile($this->config()->test_state_file);
+            $path = Director::getAbsFile($this->config()->get('test_state_file'));
         }
 
         return $path;
