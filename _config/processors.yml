@@ -1,8 +1,12 @@
 ---
 Name: testsessionprocessors
+After:
+  - requestprocessors
+Before:
+  - coresecurity
 ---
 SilverStripe\Core\Injector\Injector:
-  SilverStripe\Control\RequestProcessor:
+  SilverStripe\Control\Director:
     properties:
-      filters:
-        - '%$SilverStripe\TestSession\TestSessionRequestFilter'
+      Middlewares:
+        TestSessionHTTPMiddleware: %$SilverStripe\TestSession\TestSessionHTTPMiddleware

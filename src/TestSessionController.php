@@ -2,11 +2,12 @@
 
 namespace SilverStripe\TestSession;
 
+use FilesystemIterator;
+use LogicException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DatetimeField;
 use SilverStripe\Forms\DropdownField;
@@ -24,8 +25,6 @@ use SilverStripe\Security\RandomGenerator;
 use SilverStripe\Security\Security;
 use SilverStripe\View\ArrayData;
 use SilverStripe\View\Requirements;
-use LogicException;
-use FilesystemIterator;
 
 /**
  * Requires PHP's mycrypt extension in order to set the database name as an encrypted cookie.
