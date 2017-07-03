@@ -12,6 +12,7 @@ use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FixtureFactory;
+use SilverStripe\Dev\YamlFixture;
 use SilverStripe\ORM\Connect\TempDatabase;
 use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\DB;
@@ -433,8 +434,8 @@ class TestSessionEnvironment
             throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
         }
 
-        $factory = Injector::inst()->create('SilverStripe\\Dev\\FixtureFactory');
-        $fixture = Injector::inst()->create('SilverStripe\\Dev\\YamlFixture', $fixtureFile);
+        $factory = Injector::inst()->create(FixtureFactory::class);
+        $fixture = Injector::inst()->create(YamlFixture::class, $fixtureFile);
         $fixture->writeInto($factory);
 
         $state = $this->getState();

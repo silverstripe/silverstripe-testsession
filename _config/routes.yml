@@ -3,4 +3,4 @@ Name: testsessionroutes
 ---
 SilverStripe\Control\Director:
   rules:
-    'dev/testsession': 'TestSessionController'
+    dev/testsession: SilverStripe\TestSession\TestSessionController
