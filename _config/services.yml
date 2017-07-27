@@ -5,4 +5,4 @@ SilverStripe\Core\Injector\Injector:
   SilverStripe\TestSession\TestSessionEnvironment:
     class: SilverStripe\TestSession\TestSessionEnvironment
   # shorthand alias for FQN
-  TestSessionEnvironment: %$SilverStripe\TestSession\TestSessionEnvironment
+  TestSessionEnvironment: '%$SilverStripe\TestSession\TestSessionEnvironment'

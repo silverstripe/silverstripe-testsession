@@ -9,4 +9,4 @@ SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Director:
     properties:
       Middlewares:
-        TestSessionHTTPMiddleware: %$SilverStripe\TestSession\TestSessionHTTPMiddleware
+        TestSessionHTTPMiddleware: '%$SilverStripe\TestSession\TestSessionHTTPMiddleware'
