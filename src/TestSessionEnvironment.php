@@ -5,6 +5,7 @@ namespace SilverStripe\TestSession;
 use Exception;
 use InvalidArgumentException;
 use LogicException;
+use SilverStripe\Core\Environment;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Configurable;
@@ -250,7 +251,7 @@ class TestSessionEnvironment
                 $state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
 
                 // Set existing one, assumes it already has been created
-                $prefix = getenv('SS_DATABASE_PREFIX') ?: 'ss_';
+                $prefix = Environment::getEnv('SS_DATABASE_PREFIX') ?: 'ss_';
                 $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix, '#')));
                 if (!preg_match($pattern, $dbName)) {
                     throw new InvalidArgumentException("Invalid database name format");
