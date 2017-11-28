@@ -18,6 +18,11 @@
         "composer/installers": "*",
         "silverstripe/framework": "^4@dev"
     },
+    "extra": {
+        "branch-alias": {
+            "2.x-dev": "2.1.x-dev"
+        }
+    },
     "scripts": {
         "lint": "phpcs -s src/ tests/"
     },
