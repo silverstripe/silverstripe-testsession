@@ -78,7 +78,6 @@ class TestSessionEnvironment
 
     public function __construct($id = null)
     {
-        $this->constructExtensions();
         if ($id) {
             $this->id = $id;
         }
