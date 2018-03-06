@@ -4,8 +4,8 @@
 		<meta charset="utf-8">
 		<% base_tag %>
 		$MetaTags
-		<% require css('framework/client/dist/styles/debug.css') %>
-		<% require css('testsession/client/styles/styles.css') %>
+		<% require css('silverstripe/framework:client/styles/debug.css') %>
+		<% require css('silverstripe/testsession:client/styles/styles.css') %>
 	</head>
 	<body>
 		<div class="info">
