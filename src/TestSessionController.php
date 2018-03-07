@@ -31,6 +31,7 @@ use SilverStripe\View\Requirements;
  */
 class TestSessionController extends Controller
 {
+    private static $url_segment = 'dev/testsession';
 
     private static $allowed_actions = array(
         'index',
@@ -77,13 +78,8 @@ class TestSessionController extends Controller
             return;
         }
 
-        Requirements::javascript('http://code.jquery.com/jquery-1.7.2.min.js');
-        Requirements::javascript('testsession/client/js/testsession.js');
-    }
-
-    public function Link($action = null)
-    {
-        return Controller::join_links(Director::baseURL(), 'dev/testsession', $action);
+        Requirements::javascript('//code.jquery.com/jquery-1.7.2.min.js');
+        Requirements::javascript('silverstripe/testsession:client/js/testsession.js');
     }
 
     public function index()
