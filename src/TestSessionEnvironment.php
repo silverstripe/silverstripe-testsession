@@ -2,9 +2,11 @@
 
 namespace SilverStripe\TestSession;
 
+use DirectoryIterator;
 use Exception;
 use InvalidArgumentException;
 use LogicException;
+use SilverStripe\Assets\Filesystem;
 use SilverStripe\Core\Environment;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
@@ -112,7 +114,7 @@ class TestSessionEnvironment
      */
     public function isRunningTests()
     {
-        return(file_exists($this->getFilePath()));
+        return (file_exists($this->getFilePath()));
     }
 
     /**
@@ -162,6 +164,9 @@ class TestSessionEnvironment
 
         $this->applyState($state);
 
+        // Back up /assets folder
+        $this->backupAssets();
+
         $this->extend('onAfterStartTestSession');
     }
 
@@ -176,6 +181,73 @@ class TestSessionEnvironment
         $this->applyState($state);
 
         $this->extend('onAfterUpdateTestSession');
+    }
+
+    /**
+     * Backup all assets from /assets to /assets_backup.
+     * Note: Only does file move, no files ever duplicated / deleted
+     */
+    protected function backupAssets()
+    {
+        // Ensure files backed up to assets dir
+        $backupFolder = $this->getAssetsBackupfolder();
+        if (!is_dir($backupFolder)) {
+            Filesystem::makeFolder($backupFolder);
+        }
+        $this->moveRecursive(ASSETS_PATH, $backupFolder, ['.htaccess', 'web.config', '.protected']);
+    }
+
+    /**
+     * Restore all assets to /assets folder.
+     * Note: Only does file move, no files ever duplicated / deleted
+     */
+    public function restoreAssets()
+    {
+        // Ensure files backed up to assets dir
+        $backupFolder = $this->getAssetsBackupfolder();
+        if (is_dir($backupFolder)) {
+            // Move all files
+            Filesystem::makeFolder(ASSETS_PATH);
+            $this->moveRecursive($backupFolder, ASSETS_PATH);
+            Filesystem::removeFolder($backupFolder);
+        }
+    }
+
+    /**
+     * Recursively move files from one directory to another
+     *
+     * @param string $src Source of files being moved
+     * @param string $dest Destination of files being moved
+     * @param array $ignore List of files to not move
+     */
+    protected function moveRecursive($src, $dest, $ignore = [])
+    {
+        // If source is not a directory stop processing
+        if (!is_dir($src)) {
+            return;
+        }
+
+        // If the destination directory does not exist create it
+        if (!is_dir($dest) && !mkdir($dest)) {
+            // If the destination directory could not be created stop processing
+            return;
+        }
+
+        // Open the source directory to read in files
+        $iterator = new DirectoryIterator($src);
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                if (!in_array($file->getFilename(), $ignore)) {
+                    rename($file->getRealPath(), $dest . DIRECTORY_SEPARATOR . $file->getFilename());
+                }
+            } elseif (!$file->isDot() && $file->isDir()) {
+                // If a dir is ignored, still move children but don't remove self
+                $this->moveRecursive($file->getRealPath(), $dest . DIRECTORY_SEPARATOR . $file);
+                if (!in_array($file->getFilename(), $ignore)) {
+                    Filesystem::removeFolder($file->getRealPath());
+                }
+            }
+        }
     }
 
     /**
@@ -394,6 +466,10 @@ class TestSessionEnvironment
     {
         $this->extend('onBeforeEndTestSession');
 
+        // Restore assets
+        $this->restoreAssets();
+
+        // Reset DB
         $tempDB = new TempDatabase();
         if ($tempDB->isUsed()) {
             $state = $this->getState();
@@ -422,7 +498,7 @@ class TestSessionEnvironment
      */
     public function loadFixtureIntoDb($fixtureFile)
     {
-        $realFile = realpath(BASE_PATH.'/'.$fixtureFile);
+        $realFile = realpath(BASE_PATH . '/' . $fixtureFile);
         $baseDir = realpath(Director::baseFolder());
         if (!$realFile || !file_exists($realFile)) {
             throw new LogicException("Fixture file doesn't exist");
@@ -470,5 +546,15 @@ class TestSessionEnvironment
     {
         $path = Director::getAbsFile($this->getFilePath());
         return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
+    }
+
+    /**
+     * Path where assets should be backed up during testing
+     *
+     * @return string
+     */
+    protected function getAssetsBackupfolder()
+    {
+        return PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets_backup';
     }
 }
