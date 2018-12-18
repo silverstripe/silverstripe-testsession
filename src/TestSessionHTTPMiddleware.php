@@ -8,8 +8,10 @@ use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\Middleware\HTTPMiddleware;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\Queries\SQLUpdate;
 
 /**
  * Sets state previously initialized through {@link TestSessionController}.
@@ -39,13 +41,40 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
 
         // Load test state
         $this->loadTestState($request);
+        $this->incrementModelState();
 
         // Call with safe teardown
         try {
             return $delegate($request);
         } finally {
             $this->restoreTestState($request);
+            $this->decrementModelState();
         }
+    }
+
+    protected function incrementModelState() {
+        $schema = DataObject::getSchema();
+
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(TestSessionState::class)))
+            ->addWhere(['ID' => 1])
+            ->addAssignments([
+                'PendingRequests' => [ '"PendingRequests" + 1' => [] ]
+            ]);
+
+        $update->execute();
+    }
+
+    protected function decrementModelState() {
+        $schema = DataObject::getSchema();
+
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(TestSessionState::class)))
+                ->addWhere(['ID' => 1])
+                ->addAssignments([
+                    '"PendingRequests"' => [ '"PendingRequests" - 1' => [] ],
+                    '"LastResponseTimestamp"' => microtime(true) * 10000
+                ]);
+
+        $update->execute();
     }
 
     /**

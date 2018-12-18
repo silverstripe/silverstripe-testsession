@@ -20,6 +20,11 @@ is a random token stored in the browser session, in order to make the
 test session specific to the executing browser, and allow multiple
 people using their own test session in the same webroot.
 
+The module also keeps some metadata about the session state in the database,
+so that it may be available for the clients as well.
+E.g. the silverstripe-behat-extension may use it through this module APIs,
+allowing us to introduce some gray-box testing techniques.
+
 The module also serves as an initializer for the
 [SilverStripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).
 It is required for Behat because the Behat CLI test runner needs to persist
