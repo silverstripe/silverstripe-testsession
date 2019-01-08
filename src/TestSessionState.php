@@ -3,7 +3,7 @@
 namespace SilverStripe\TestSession;
 
 use SilverStripe\ORM\DataObject;
-
+use SilverStripe\ORM\Queries\SQLUpdate;
 
 /**
  * The session state keeps some metadata about the current test session.
@@ -12,22 +12,49 @@ use SilverStripe\ORM\DataObject;
  *
  * The client side (Behat) must not use this class straightforwardly, but rather
  * rely on the API of {@see TestSessionEnvironment} or {@see TestSessionController}.
+ *
+ * @property int PendingRequests keeps information about how many requests are in progress
+ * @property float LastResponseTimestamp microtime of the last response made by the server
  */
 class TestSessionState extends DataObject
 {
-    private static $db = [
-        /**
-         * Pending requests to keep information
-         * about how many requests are in progress
-         * on the server
-         */
-        'PendingRequests' => 'Int',
+    private static $table_name = 'TestSessionState';
 
-        /**
-         * The microtime stamp of the last response
-         * made by the server.
-         * (well, actually that's rather TestSessionMiddleware)
-         */
+    private static $db = [
+        'PendingRequests' => 'Int',
         'LastResponseTimestamp' => 'Decimal(14, 0)'
     ];
+
+    /**
+     * Increments TestSessionState.PendingRequests number by 1
+     * to indicate we have one more request in progress
+     */
+    public static function incrementState()
+    {
+        $schema = DataObject::getSchema();
+
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(self::class)))
+            ->addWhere(['ID' => 1])
+            ->assignSQL('"PendingRequests"', '"PendingRequests" + 1');
+
+        $update->execute();
+    }
+
+    /**
+     * Decrements TestSessionState.PendingRequests number by 1
+     * to indicate we have one more request in progress.
+     * Also updates TestSessionState.LastResponseTimestamp
+     * to the current timestamp.
+     */
+    public static function decrementState()
+    {
+        $schema = DataObject::getSchema();
+
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(self::class)))
+                ->addWhere(['ID' => 1])
+                ->assignSQL('"PendingRequests"', '"PendingRequests" - 1')
+                ->assign('"LastResponseTimestamp"', microtime(true) * 10000);
+
+        $update->execute();
+    }
 }

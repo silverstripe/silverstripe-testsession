@@ -571,19 +571,23 @@ class TestSessionEnvironment
      *
      * @return bool Whether there are no more pending requests
      */
-    public function waitForPendingRequests($await=700, $timeout=10000)
+    public function waitForPendingRequests($await = 700, $timeout = 10000)
     {
-        $timeout = microtime(true) * 10000 + $timeout;
-        $interval = $await < 300 ? 300 : $await;
+        $now = static function () {
+            return microtime(true) * 10000;
+        };
+
+        $timeout = $now() + $timeout;
+        $interval = max(300, $await);
         do {
             $model = TestSessionState::get()->byID(1);
 
             $pendingRequests = $model->PendingRequests > 0;
-            $lastRequestAwait = $model->LastResponseTimestamp + $await > microtime(true) * 10000;
+            $lastRequestAwait = ($model->LastResponseTimestamp + $await) > $now();
 
             $pending = $pendingRequests || $lastRequestAwait;
 
-            if ($timeout < microtime(true) * 10000) {
+            if ($timeout < $now()) {
                 // timed out
                 return false;
             }
