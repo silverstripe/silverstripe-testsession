@@ -39,12 +39,14 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
 
         // Load test state
         $this->loadTestState($request);
+        TestSessionState::incrementState();
 
         // Call with safe teardown
         try {
             return $delegate($request);
         } finally {
             $this->restoreTestState($request);
+            TestSessionState::decrementState();
         }
     }
 

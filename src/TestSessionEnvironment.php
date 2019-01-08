@@ -335,6 +335,8 @@ class TestSessionEnvironment
                 // Connect to the new database, overwriting the old DB connection (if any)
                 DB::connect($databaseConfig);
             }
+
+            TestSessionState::create()->write();  // initialize the session state
         }
 
         // Mailer
@@ -363,6 +365,7 @@ class TestSessionEnvironment
         }
 
         $this->saveState($state);
+
         $this->extend('onAfterApplyState');
     }
 
@@ -557,5 +560,39 @@ class TestSessionEnvironment
     protected function getAssetsBackupfolder()
     {
         return PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets_backup';
+    }
+
+
+    /**
+     * Wait for pending requests
+     *
+     * @param int $await Time to wait (in ms) after the last response (to allow the browser react)
+     * @param int $timeout For how long (in ms) do we wait before giving up
+     *
+     * @return bool Whether there are no more pending requests
+     */
+    public function waitForPendingRequests($await = 700, $timeout = 10000)
+    {
+        $now = static function () {
+            return microtime(true) * 10000;
+        };
+
+        $timeout = $now() + $timeout;
+        $interval = max(300, $await);
+        do {
+            $model = TestSessionState::get()->byID(1);
+
+            $pendingRequests = $model->PendingRequests > 0;
+            $lastRequestAwait = ($model->LastResponseTimestamp + $await) > $now();
+
+            $pending = $pendingRequests || $lastRequestAwait;
+
+            if ($timeout < $now()) {
+                // timed out
+                return false;
+            }
+        } while ($pending && (usleep($interval * 1000) || true));
+
+        return true;
     }
 }
