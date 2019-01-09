@@ -573,24 +573,22 @@ class TestSessionEnvironment
      */
     public function waitForPendingRequests($await = 700, $timeout = 10000)
     {
-        $now = static function () {
-            return microtime(true) * 10000;
-        };
-
-        $timeout = $now() + $timeout;
+        $timeout = TestSessionState::microtime() + $timeout;
         $interval = max(300, $await);
+
         do {
+            $now = TestSessionState::microtime();
+
+            if ($timeout < $now) {
+                return false;
+            }
+
             $model = TestSessionState::get()->byID(1);
 
             $pendingRequests = $model->PendingRequests > 0;
-            $lastRequestAwait = ($model->LastResponseTimestamp + $await) > $now();
+            $lastRequestAwait = ($model->LastResponseTimestamp + $await) > $now;
 
             $pending = $pendingRequests || $lastRequestAwait;
-
-            if ($timeout < $now()) {
-                // timed out
-                return false;
-            }
         } while ($pending && (usleep($interval * 1000) || true));
 
         return true;

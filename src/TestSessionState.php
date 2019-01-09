@@ -53,8 +53,18 @@ class TestSessionState extends DataObject
         $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(self::class)))
                 ->addWhere(['ID' => 1])
                 ->assignSQL('"PendingRequests"', '"PendingRequests" - 1')
-                ->assign('"LastResponseTimestamp"', microtime(true) * 10000);
+                ->assign('"LastResponseTimestamp"', self::microtime());
 
         $update->execute();
+    }
+
+    /**
+     * Returns unix timestamp in milliseconds
+     *
+     * @return float milliseconds since 1970
+     */
+    public static function microtime()
+    {
+        return round(microtime(true) * 1000);
     }
 }
