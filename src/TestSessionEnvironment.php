@@ -573,11 +573,11 @@ class TestSessionEnvironment
      */
     public function waitForPendingRequests($await = 700, $timeout = 10000)
     {
-        $timeout = TestSessionState::microtime() + $timeout;
+        $timeout = TestSessionState::millitime() + $timeout;
         $interval = max(300, $await);
 
         do {
-            $now = TestSessionState::microtime();
+            $now = TestSessionState::millitime();
 
             if ($timeout < $now) {
                 return false;
