@@ -80,10 +80,8 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
             $file = $testState->stubfile;
             if (!Director::isLive() && $file && file_exists($file)) {
                 // Connect to the database so the included code can interact with it
-                $databaseConfig = DB::getConfig();
-                if ($databaseConfig) {
-                    DB::connect($databaseConfig);
-                }
+                $this->testSessionEnvironment->connectToDatabase();
+
                 include_once($file);
             }
         }
