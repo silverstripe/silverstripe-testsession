@@ -71,6 +71,9 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
             Email::config()->set("send_all_emails_to", null);
         }
 
+        // Connect to the test session database
+        $this->testSessionEnvironment->connectToDatabase();
+
         // Allows inclusion of a PHP file, usually with procedural commands
         // to set up required test state. The file can be generated
         // through {@link TestSessionStubCodeWriter}, and the session state
@@ -79,9 +82,6 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
         if (isset($testState->stubfile)) {
             $file = $testState->stubfile;
             if (!Director::isLive() && $file && file_exists($file)) {
-                // Connect to the database so the included code can interact with it
-                $this->testSessionEnvironment->connectToDatabase();
-
                 include_once($file);
             }
         }
