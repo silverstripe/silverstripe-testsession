@@ -288,6 +288,7 @@ class TestSessionEnvironment
 
         // Database
         if (!$this->isRunningTests()) {
+            $dbCreate = isset($state->createDatabase) ? (bool) $state->createDatabase : false;
             $dbName = (isset($state->database)) ? $state->database : null;
 
             if ($dbName) {
@@ -296,7 +297,7 @@ class TestSessionEnvironment
                 $dbExists = false;
             }
 
-            if (!$dbExists) {
+            if (!$dbExists && $dbCreate) {
                 // Create a new one with a randomized name
                 $tempDB = new TempDatabase();
                 $dbName = $tempDB->build();
@@ -310,7 +311,6 @@ class TestSessionEnvironment
                     throw new InvalidArgumentException("Invalid database name format");
                 }
 
-                $this->oldDatabaseName = $databaseConfig['database'];
                 $databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
 
                 // Connect to the new database, overwriting the old DB connection (if any)
