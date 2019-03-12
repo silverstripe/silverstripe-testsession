@@ -57,41 +57,26 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
      */
     protected function loadTestState(HTTPRequest $request)
     {
-        $testState = $this->testSessionEnvironment->getState();
-
-        // Date and time
-        if (isset($testState->datetime)) {
-            DBDatetime::set_mock_now($testState->datetime);
-        }
-
-        // Register mailer
-        if (isset($testState->mailer)) {
-            $mailer = $testState->mailer;
-            Injector::inst()->registerService(new $mailer(), Mailer::class);
-            Email::config()->set("send_all_emails_to", null);
-        }
-
-        // Connect to the test session database
-        $this->testSessionEnvironment->connectToDatabase();
-
-        // Allows inclusion of a PHP file, usually with procedural commands
-        // to set up required test state. The file can be generated
-        // through {@link TestSessionStubCodeWriter}, and the session state
-        // set through {@link TestSessionController->set()} and the
-        // 'testsession.stubfile' state parameter.
-        if (isset($testState->stubfile)) {
-            $file = $testState->stubfile;
-            if (!Director::isLive() && $file && file_exists($file)) {
-                include_once($file);
-            }
-        }
+        $state = $this->testSessionEnvironment->getState();
+        $this->testSessionEnvironment->applyState($state);
     }
 
+    /**
+     * @param HTTPRequest $request
+     * @return void
+     */
     protected function restoreTestState(HTTPRequest $request)
     {
         // Store PHP session
         $state = $this->testSessionEnvironment->getState();
         $state->session = $request->getSession()->getAll();
-        $this->testSessionEnvironment->applyState($state);
+
+        // skip saving file if the session is being closed (all test properties are removed except session)
+        $keys = get_object_vars($state);
+        if (count($keys) <= 1) {
+            return;
+        }
+
+        $this->testSessionEnvironment->saveState($state);
     }
 }
