@@ -1,6 +1,7 @@
 ---
 Name: testsessionroutes
 ---
-SilverStripe\Control\Director:
-  rules:
-    dev/testsession: SilverStripe\TestSession\TestSessionController
+SilverStripe\Dev\DevelopmentAdmin:
+  registered_controllers:
+    testsession:
+      controller: SilverStripe\TestSession\TestSessionController
