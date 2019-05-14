@@ -39,12 +39,14 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
 
         // Load test state
         $this->loadTestState($request);
+        TestSessionState::incrementState();
 
         // Call with safe teardown
         try {
             return $delegate($request);
         } finally {
             $this->restoreTestState($request);
+            TestSessionState::decrementState();
         }
     }
 
@@ -69,6 +71,9 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
             Email::config()->set("send_all_emails_to", null);
         }
 
+        // Connect to the test session database
+        $this->testSessionEnvironment->connectToDatabase();
+
         // Allows inclusion of a PHP file, usually with procedural commands
         // to set up required test state. The file can be generated
         // through {@link TestSessionStubCodeWriter}, and the session state
@@ -77,11 +82,6 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
         if (isset($testState->stubfile)) {
             $file = $testState->stubfile;
             if (!Director::isLive() && $file && file_exists($file)) {
-                // Connect to the database so the included code can interact with it
-                $databaseConfig = DB::getConfig();
-                if ($databaseConfig) {
-                    DB::connect($databaseConfig);
-                }
                 include_once($file);
             }
         }

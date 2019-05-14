@@ -283,26 +283,7 @@ class TestSessionEnvironment
         }
 
         // ensure we have a connection to the database
-        if (isset($state->database) && $state->database) {
-            if (!DB::get_conn()) {
-                // No connection, so try and connect to tmpdb if it exists
-                if (isset($state->database)) {
-                    $this->oldDatabaseName = $databaseConfig['database'];
-                    $databaseConfig['database'] = $state->database;
-                }
-
-                // Connect to database
-                DB::connect($databaseConfig);
-            } else {
-                // We've already connected to the database, do a fast check to see what database we're currently using
-                $db = DB::get_conn()->getSelectedDatabase();
-                if (isset($state->database) && $db != $state->database) {
-                    $this->oldDatabaseName = $databaseConfig['database'];
-                    $databaseConfig['database'] = $state->database;
-                    DB::connect($databaseConfig);
-                }
-            }
-        }
+        $this->connectToDatabase($state);
 
         // Database
         if (!$this->isRunningTests()) {
@@ -334,6 +315,8 @@ class TestSessionEnvironment
                 // Connect to the new database, overwriting the old DB connection (if any)
                 DB::connect($databaseConfig);
             }
+
+            TestSessionState::create()->write();  // initialize the session state
         }
 
         // Mailer
@@ -362,6 +345,7 @@ class TestSessionEnvironment
         }
 
         $this->saveState($state);
+
         $this->extend('onAfterApplyState');
     }
 
@@ -556,5 +540,70 @@ class TestSessionEnvironment
     protected function getAssetsBackupfolder()
     {
         return PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets_backup';
+    }
+
+    /**
+     * Ensure that there is a connection to the database
+     * 
+     * @param mixed $state
+     */
+    public function connectToDatabase($state = null) {
+        if ($state == null) {
+            $state = $this->getState();
+        }
+
+        $databaseConfig = DB::getConfig();
+
+        if (isset($state->database) && $state->database) {
+            if (!DB::get_conn()) {
+                // No connection, so try and connect to tmpdb if it exists
+                if (isset($state->database)) {
+                    $this->oldDatabaseName = $databaseConfig['database'];
+                    $databaseConfig['database'] = $state->database;
+                }
+
+                // Connect to database
+                DB::connect($databaseConfig);
+            } else {
+                // We've already connected to the database, do a fast check to see what database we're currently using
+                $db = DB::get_conn()->getSelectedDatabase();
+                if (isset($state->database) && $db != $state->database) {
+                    $this->oldDatabaseName = $databaseConfig['database'];
+                    $databaseConfig['database'] = $state->database;
+                    DB::connect($databaseConfig);
+                }
+            }
+        }
+    }
+
+    /**
+     * Wait for pending requests
+     *
+     * @param int $await Time to wait (in ms) after the last response (to allow the browser react)
+     * @param int $timeout For how long (in ms) do we wait before giving up
+     *
+     * @return bool Whether there are no more pending requests
+     */
+    public function waitForPendingRequests($await = 700, $timeout = 10000)
+    {
+        $timeout = TestSessionState::millitime() + $timeout;
+        $interval = max(300, $await);
+
+        do {
+            $now = TestSessionState::millitime();
+
+            if ($timeout < $now) {
+                return false;
+            }
+
+            $model = TestSessionState::get()->byID(1);
+
+            $pendingRequests = $model->PendingRequests > 0;
+            $lastRequestAwait = ($model->LastResponseTimestamp + $await) > $now;
+
+            $pending = $pendingRequests || $lastRequestAwait;
+        } while ($pending && (usleep($interval * 1000) || true));
+
+        return true;
     }
 }
