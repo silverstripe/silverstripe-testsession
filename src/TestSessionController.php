@@ -311,7 +311,7 @@ class TestSessionController extends Controller
 
         $this->extend('onBeforeClear');
 
-        $tempDB = new TempDatabase();
+        $tempDB = TempDatabase::create();
         if ($tempDB->isUsed()) {
             $tempDB->clearAllData();
         }

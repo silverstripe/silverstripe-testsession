@@ -7,10 +7,12 @@ use Exception;
 use InvalidArgumentException;
 use LogicException;
 use SilverStripe\Assets\Filesystem;
-use SilverStripe\Core\Environment;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
@@ -20,6 +22,7 @@ use SilverStripe\ORM\Connect\TempDatabase;
 use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\TestSession\TestSessionState;
 use SilverStripe\Versioned\Versioned;
 use stdClass;
 
@@ -162,7 +165,9 @@ class TestSessionEnvironment
         $json = json_encode($state, JSON_FORCE_OBJECT);
         $state = json_decode($json);
 
-        $this->applyState($state);
+        $state = $this->createDatabase($state);
+        $state = $this->applyState($state);
+        $this->saveState($state);
 
         // Back up /assets folder
         $this->backupAssets();
@@ -179,6 +184,7 @@ class TestSessionEnvironment
         $state = json_decode($json);
 
         $this->applyState($state);
+        $this->saveState($state);
 
         $this->extend('onAfterUpdateTestSession');
     }
@@ -251,10 +257,57 @@ class TestSessionEnvironment
     }
 
     /**
+     * Creates a TempDB
+     * Will modify state if the created database has a different name from what was in state
+     *
+     * @param stdClass $state
+     * @return stdClass $state
+     */
+    public function createDatabase($state)
+    {
+        $dbCreate = isset($state->createDatabase) ? (bool) $state->createDatabase : false;
+        $dbName = (isset($state->database)) ? $state->database : null;
+
+        if ($dbName) {
+            $dbExists = DB::get_conn()->databaseExists($dbName);
+        } else {
+            $dbExists = false;
+        }
+
+        $databaseConfig = DB::getConfig();
+        if (!$dbExists && $dbCreate) {
+            $this->oldDatabaseName = $databaseConfig['database'];
+            // Create a new one with a randomized name
+            $tempDB = TempDatabase::create();
+            $dbName = $tempDB->build();
+
+            $state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
+
+            // Set existing one, assumes it already has been created
+            $prefix = Environment::getEnv('SS_DATABASE_PREFIX') ?: 'ss_';
+            $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix, '#')));
+            if (!preg_match($pattern, $dbName)) {
+                throw new InvalidArgumentException("Invalid database name format");
+            }
+        }
+
+        if ($dbExists || $dbCreate) {
+            // Connect to the new database, overwriting the old DB connection (if any)
+            $databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
+            DB::connect($databaseConfig);
+            TestSessionState::create()->write();  // initialize the session state
+        }
+
+        return $state;
+    }
+
+    /**
+     * Takes a state object and applies environment transformations to current application environment
+     *
+     * Does not persist any changes to the the state object - @see saveState for persistence
+     *
      * Assumes the database has already been created in startTestSession(), as this method can be called from
      * _config.php where we don't yet have a DB connection.
-     *
-     * Persists the state to the filesystem.
      *
      * You can extend this by creating an Extension object and implementing either onBeforeApplyState() or
      * onAfterApplyState() to add your own test state handling in.
@@ -262,6 +315,7 @@ class TestSessionEnvironment
      * @param mixed $state
      * @throws LogicException
      * @throws InvalidArgumentException
+     * @return mixed $state
      */
     public function applyState($state)
     {
@@ -271,64 +325,21 @@ class TestSessionEnvironment
         $databaseConfig = DB::getConfig();
         $this->oldDatabaseName = $databaseConfig['database'];
 
-        // Load existing state from $this->state into $state, if there is any
-        $oldState = $this->getState();
-
-        if ($oldState) {
-            foreach ($oldState as $k => $v) {
-                if (!isset($state->$k)) {
-                    $state->$k = $v; // Don't overwrite stuff in $state, as that's the new state
-                }
-            }
-        }
-
         // ensure we have a connection to the database
         $this->connectToDatabase($state);
-
-        // Database
-        if (!$this->isRunningTests()) {
-            $dbName = (isset($state->database)) ? $state->database : null;
-
-            if ($dbName) {
-                $dbExists = DB::get_conn()->databaseExists($dbName);
-            } else {
-                $dbExists = false;
-            }
-
-            if (!$dbExists) {
-                // Create a new one with a randomized name
-                $tempDB = new TempDatabase();
-                $dbName = $tempDB->build();
-
-                $state->database = $dbName; // In case it's changed by the call to SapphireTest::create_temp_db();
-
-                // Set existing one, assumes it already has been created
-                $prefix = Environment::getEnv('SS_DATABASE_PREFIX') ?: 'ss_';
-                $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix, '#')));
-                if (!preg_match($pattern, $dbName)) {
-                    throw new InvalidArgumentException("Invalid database name format");
-                }
-
-                $this->oldDatabaseName = $databaseConfig['database'];
-                $databaseConfig['database'] = $dbName; // Instead of calling DB::set_alternative_db_name();
-
-                // Connect to the new database, overwriting the old DB connection (if any)
-                DB::connect($databaseConfig);
-            }
-
-            TestSessionState::create()->write();  // initialize the session state
-        }
 
         // Mailer
         $mailer = (isset($state->mailer)) ? $state->mailer : null;
 
         if ($mailer) {
-            if (!class_exists($mailer) || !is_subclass_of($mailer, 'SilverStripe\\Control\\Email\\Mailer')) {
+            if (!class_exists($mailer) || !is_subclass_of($mailer, Mailer::class)) {
                 throw new InvalidArgumentException(sprintf(
                     'Class "%s" is not a valid class, or subclass of Mailer',
                     $mailer
                 ));
             }
+            Injector::inst()->registerService(new $mailer(), Mailer::class);
+            Email::config()->set("send_all_emails_to", null);
         }
 
         // Date and time
@@ -342,11 +353,24 @@ class TestSessionEnvironment
                     $state->datetime
                 ));
             }
+            DBDatetime::set_mock_now($state->datetime);
         }
 
-        $this->saveState($state);
+        // Allows inclusion of a PHP file, usually with procedural commands
+        // to set up required test state. The file can be generated
+        // through {@link TestSessionStubCodeWriter}, and the session state
+        // set through {@link TestSessionController->set()} and the
+        // 'testsession.stubfile' state parameter.
+        if (isset($state->stubfile)) {
+            $file = $state->stubfile;
+            if (!Director::isLive() && $file && file_exists($file)) {
+                include_once($file);
+            }
+        }
 
-        $this->extend('onAfterApplyState');
+        $this->extend('onAfterApplyState', $state);
+
+        return $state;
     }
 
     /**
@@ -454,7 +478,7 @@ class TestSessionEnvironment
         $this->restoreAssets();
 
         // Reset DB
-        $tempDB = new TempDatabase();
+        $tempDB = TempDatabase::create();
         if ($tempDB->isUsed()) {
             $state = $this->getState();
             $dbConn = DB::get_schema();
@@ -475,6 +499,8 @@ class TestSessionEnvironment
 
     /**
      * Loads a YAML fixture into the database as part of the {@link TestSessionController}.
+     *
+     * Writes loaded fixture files to $state->fixtures
      *
      * @param string $fixtureFile The .yml file to load
      * @return FixtureFactory The loaded fixture
@@ -500,7 +526,7 @@ class TestSessionEnvironment
 
         $state = $this->getState();
         $state->fixtures[] = $fixtureFile;
-        $this->applyState($state);
+        $this->saveState($state);
 
         return $fixture;
     }
@@ -544,10 +570,12 @@ class TestSessionEnvironment
 
     /**
      * Ensure that there is a connection to the database
-     * 
+     *
      * @param mixed $state
+     * @return void
      */
-    public function connectToDatabase($state = null) {
+    public function connectToDatabase($state = null)
+    {
         if ($state == null) {
             $state = $this->getState();
         }
