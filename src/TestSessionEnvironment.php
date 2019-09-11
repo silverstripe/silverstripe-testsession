@@ -277,6 +277,9 @@ class TestSessionEnvironment
         $databaseConfig = DB::getConfig();
         if (!$dbExists && $dbCreate) {
             $this->oldDatabaseName = $databaseConfig['database'];
+            // Ensure we don't allow TempDatabase to immediately kill the newly created DB when the request finishes
+            Config::modify()->set(TempDatabase::class, 'teardown_on_exit', false);
+
             // Create a new one with a randomized name
             $tempDB = TempDatabase::create();
             $dbName = $tempDB->build();
