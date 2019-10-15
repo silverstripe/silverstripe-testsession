@@ -24,7 +24,7 @@
  *
  * See {@link $state} for default information stored in the test session.
  */
-class TestSessionEnvironment extends Object
+class TestSessionEnvironment extends SS_Object
 {
 
     /**
