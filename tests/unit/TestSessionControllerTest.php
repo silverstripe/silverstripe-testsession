@@ -4,6 +4,7 @@ namespace SilverStripe\TestSession\Tests\Unit;
 
 use DateTime;
 use LogicException;
+use PHPUnit\Framework\MockObject\MockObject;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\HTTPRequest;
@@ -22,13 +23,13 @@ use SilverStripe\Core\Config\Config;
 class TestSessionControllerTest extends SapphireTest
 {
     /**
-     * @var TestSessionEnvironment|PHPUnit_Framework_MockObject_MockObject
+     * @var TestSessionEnvironment|MockObject
      */
     private $testSessionEnvironment;
 
     protected $usesDatabase = true;
 
-    protected function setUp()
+    protected function setUp() : void
     {
         parent::setUp();
         Injector::inst()->unregisterNamedObject(TestSessionEnvironment::class);

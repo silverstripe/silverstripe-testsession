@@ -23,7 +23,7 @@ class TestSessionHTTPMiddlewareTest extends SapphireTest
 
     protected $usesDatabase = true;
 
-    protected function setUp()
+    protected function setUp() : void
     {
         parent::setUp();
         Injector::inst()->registerService(

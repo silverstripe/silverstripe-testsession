@@ -18,7 +18,7 @@ use stdClass;
 class TestSessionEnvironmentTest extends SapphireTest
 {
 
-    protected function setUp()
+    protected function setUp() : void
     {
         parent::setUp();
         Injector::inst()->unregisterNamedObject(TestSessionEnvironment::class);
