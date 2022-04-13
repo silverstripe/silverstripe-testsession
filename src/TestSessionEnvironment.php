@@ -102,7 +102,7 @@ class TestSessionEnvironment
     public function getFilePath()
     {
         if ($this->id) {
-            $path = Director::getAbsFile(sprintf($this->config()->get('test_state_id_file'), $this->id));
+            $path = Director::getAbsFile(sprintf($this->config()->get('test_state_id_file') ?? '', $this->id));
         } else {
             $path = Director::getAbsFile($this->config()->get('test_state_file'));
         }
@@ -115,7 +115,7 @@ class TestSessionEnvironment
      */
     public function isRunningTests()
     {
-        return (file_exists($this->getFilePath()));
+        return (file_exists($this->getFilePath() ?? ''));
     }
 
     /**
@@ -161,7 +161,7 @@ class TestSessionEnvironment
 
         // Convert to JSON and back so we can share the applyState() code between this and ->loadFromFile()
         $json = json_encode($state, JSON_FORCE_OBJECT);
-        $state = json_decode($json);
+        $state = json_decode($json ?? '');
 
         $this->applyState($state);
 
@@ -177,7 +177,7 @@ class TestSessionEnvironment
 
         // Convert to JSON and back so we can share the appleState() code between this and ->loadFromFile()
         $json = json_encode($state, JSON_FORCE_OBJECT);
-        $state = json_decode($json);
+        $state = json_decode($json ?? '');
 
         $this->applyState($state);
 
@@ -192,7 +192,7 @@ class TestSessionEnvironment
     {
         // Ensure files backed up to assets dir
         $backupFolder = $this->getAssetsBackupfolder();
-        if (!is_dir($backupFolder)) {
+        if (!is_dir($backupFolder ?? '')) {
             Filesystem::makeFolder($backupFolder);
         }
         $this->moveRecursive(ASSETS_PATH, $backupFolder, ['.htaccess', 'web.config', '.protected']);
@@ -206,7 +206,7 @@ class TestSessionEnvironment
     {
         // Ensure files backed up to assets dir
         $backupFolder = $this->getAssetsBackupfolder();
-        if (is_dir($backupFolder)) {
+        if (is_dir($backupFolder ?? '')) {
             // Move all files
             Filesystem::makeFolder(ASSETS_PATH);
             $this->moveRecursive($backupFolder, ASSETS_PATH);
@@ -224,12 +224,12 @@ class TestSessionEnvironment
     protected function moveRecursive($src, $dest, $ignore = [])
     {
         // If source is not a directory stop processing
-        if (!is_dir($src)) {
+        if (!is_dir($src ?? '')) {
             return;
         }
 
         // If the destination directory does not exist create it
-        if (!is_dir($dest) && !mkdir($dest)) {
+        if (!is_dir($dest ?? '') && !mkdir($dest ?? '')) {
             // If the destination directory could not be created stop processing
             return;
         }
@@ -238,13 +238,13 @@ class TestSessionEnvironment
         $iterator = new DirectoryIterator($src);
         foreach ($iterator as $file) {
             if ($file->isFile()) {
-                if (!in_array($file->getFilename(), $ignore)) {
-                    rename($file->getRealPath(), $dest . DIRECTORY_SEPARATOR . $file->getFilename());
+                if (!in_array($file->getFilename(), $ignore ?? [])) {
+                    rename($file->getRealPath() ?? '', $dest . DIRECTORY_SEPARATOR . $file->getFilename());
                 }
             } elseif (!$file->isDot() && $file->isDir()) {
                 // If a dir is ignored, still move children but don't remove self
                 $this->moveRecursive($file->getRealPath(), $dest . DIRECTORY_SEPARATOR . $file);
-                if (!in_array($file->getFilename(), $ignore)) {
+                if (!in_array($file->getFilename(), $ignore ?? [])) {
                     Filesystem::removeFolder($file->getRealPath());
                 }
             }
@@ -305,8 +305,8 @@ class TestSessionEnvironment
 
                 // Set existing one, assumes it already has been created
                 $prefix = Environment::getEnv('SS_DATABASE_PREFIX') ?: 'ss_';
-                $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix, '#')));
-                if (!preg_match($pattern, $dbName)) {
+                $pattern = strtolower(sprintf('#^%stmpdb.*#', preg_quote($prefix ?? '', '#')));
+                if (!preg_match($pattern ?? '', $dbName ?? '')) {
                     throw new InvalidArgumentException("Invalid database name format");
                 }
 
@@ -324,7 +324,7 @@ class TestSessionEnvironment
         $mailer = (isset($state->mailer)) ? $state->mailer : null;
 
         if ($mailer) {
-            if (!class_exists($mailer) || !is_subclass_of($mailer, 'SilverStripe\\Control\\Email\\Mailer')) {
+            if (!class_exists($mailer ?? '') || !is_subclass_of($mailer, 'SilverStripe\\Control\\Email\\Mailer')) {
                 throw new InvalidArgumentException(sprintf(
                     'Class "%s" is not a valid class, or subclass of Mailer',
                     $mailer
@@ -358,13 +358,13 @@ class TestSessionEnvironment
      */
     public function importDatabase($path, $requireDefaultRecords = false)
     {
-        $sql = file_get_contents($path);
+        $sql = file_get_contents($path ?? '');
 
         // Split into individual query commands, removing comments
         $sqlCmds = array_filter(preg_split(
             '/;\n/',
-            preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql)
-        ));
+            preg_replace(array('/^$\n/m', '/^(\/|#).*$\n/m'), '', $sql ?? '') ?? ''
+        ) ?? []);
 
         // Execute each query
         foreach ($sqlCmds as $sqlCmd) {
@@ -401,7 +401,7 @@ class TestSessionEnvironment
             $content = json_encode($state);
         }
         $old = umask(0);
-        file_put_contents($this->getFilePath(), $content, LOCK_EX);
+        file_put_contents($this->getFilePath() ?? '', $content, LOCK_EX);
         umask($old);
     }
 
@@ -409,8 +409,8 @@ class TestSessionEnvironment
     {
         if ($this->isRunningTests()) {
             try {
-                $contents = file_get_contents($this->getFilePath());
-                $json = json_decode($contents);
+                $contents = file_get_contents($this->getFilePath() ?? '');
+                $json = json_decode($contents ?? '');
 
                 $this->applyState($json);
             } catch (Exception $e) {
@@ -428,8 +428,8 @@ class TestSessionEnvironment
     {
         $file = $this->getFilePath();
 
-        if (file_exists($file)) {
-            if (!unlink($file)) {
+        if (file_exists($file ?? '')) {
+            if (!unlink($file ?? '')) {
                 throw new \Exception('Unable to remove the testsession state file, please remove it manually. File '
                     . 'path: ' . $file);
             }
@@ -484,14 +484,14 @@ class TestSessionEnvironment
     public function loadFixtureIntoDb($fixtureFile)
     {
         $realFile = realpath(BASE_PATH . '/' . $fixtureFile);
-        $baseDir = realpath(Director::baseFolder());
-        if (!$realFile || !file_exists($realFile)) {
+        $baseDir = realpath(Director::baseFolder() ?? '');
+        if (!$realFile || !file_exists($realFile ?? '')) {
             throw new LogicException("Fixture file doesn't exist");
-        } elseif (substr($realFile, 0, strlen($baseDir)) != $baseDir) {
+        } elseif (substr($realFile ?? '', 0, strlen($baseDir ?? '')) != $baseDir) {
             throw new LogicException("Fixture file must be inside $baseDir");
-        } elseif (substr($realFile, -4) != '.yml') {
+        } elseif (substr($realFile ?? '', -4) != '.yml') {
             throw new LogicException("Fixture file must be a .yml file");
-        } elseif (!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile)) {
+        } elseif (!preg_match('/^([^\/.][^\/]+)\/tests\//', $fixtureFile ?? '')) {
             throw new LogicException("Fixture file must be inside the tests subfolder of one of your modules.");
         }
 
@@ -530,7 +530,7 @@ class TestSessionEnvironment
     public function getState()
     {
         $path = Director::getAbsFile($this->getFilePath());
-        return (file_exists($path)) ? json_decode(file_get_contents($path)) : new stdClass;
+        return (file_exists($path ?? '')) ? json_decode(file_get_contents($path)) : new stdClass;
     }
 
     /**
@@ -545,10 +545,11 @@ class TestSessionEnvironment
 
     /**
      * Ensure that there is a connection to the database
-     * 
+     *
      * @param mixed $state
      */
-    public function connectToDatabase($state = null) {
+    public function connectToDatabase($state = null)
+    {
         if ($state == null) {
             $state = $this->getState();
         }

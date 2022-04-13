@@ -104,7 +104,7 @@ class TestSessionController extends Controller
             $id = null;
         } else {
             $generator = Injector::inst()->get(RandomGenerator::class);
-            $id = substr($generator->randomToken(), 0, 10);
+            $id = substr($generator->randomToken() ?? '', 0, 10);
             $this->getRequest()->getSession()->set('TestSessionId', $id);
         }
 
@@ -113,7 +113,7 @@ class TestSessionController extends Controller
 
         // Remove unnecessary items of form-specific data from being saved in the test session
         $params = array_diff_key(
-            $params,
+            $params ?? [],
             array(
                 'action_set' => true,
                 'action_start' => true,
@@ -170,7 +170,7 @@ class TestSessionController extends Controller
             throw new LogicException("No test session in progress.");
         }
 
-        $newSessionStates = array_diff_key($request->getVars(), array('url' => true));
+        $newSessionStates = array_diff_key($request->getVars() ?? [], array('url' => true));
         if (!$newSessionStates) {
             throw new LogicException('No query parameters detected');
         }
@@ -288,7 +288,7 @@ class TestSessionController extends Controller
 
         // Remove unnecessary items of form-specific data from being saved in the test session
         $params = array_diff_key(
-            $params,
+            $params ?? [],
             array(
                 'action_set' => true,
                 'action_start' => true,
@@ -399,7 +399,7 @@ class TestSessionController extends Controller
             $path = BASE_PATH . '/' . $path;
         }
 
-        if ($path && file_exists($path)) {
+        if ($path && file_exists($path ?? '')) {
             $it = new FilesystemIterator($path);
             foreach ($it as $fileinfo) {
                 if ($fileinfo->getExtension() != 'sql') {
