@@ -82,7 +82,7 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
         // 'testsession.stubfile' state parameter.
         if (isset($testState->stubfile)) {
             $file = $testState->stubfile;
-            if (!Director::isLive() && $file && file_exists($file)) {
+            if (!Director::isLive() && $file && file_exists($file ?? '')) {
                 include_once($file);
             }
         }
