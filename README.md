@@ -1,6 +1,6 @@
 # Browser Test Session Module
 
-[![Build Status](https://travis-ci.org/silverstripe-labs/silverstripe-testsession.svg)](https://travis-ci.org/silverstripe-labs/silverstripe-testsession)
+[![CI](https://github.com/silverstripe/silverstripe-testsession/actions/workflows/ci.yml/badge.svg)](https://github.com/silverstripe/silverstripe-testsession/actions/workflows/ci.yml)
 
 ## Overview
 
@@ -47,7 +47,7 @@ and interact with it through other URL endpoints.
 Commands:
 
  * `dev/testsession`: Shows options for starting a test session
- * `dev/testsession/start`: Sets up test state, most commonly a test database will be constructed, 
+ * `dev/testsession/start`: Sets up test state, most commonly a test database will be constructed,
     and your browser session will be amended to use this database. See "Parameters" documentation below.
  * `dev/testsession/end`: Removes the test state, and resets to the original database.
  * `dev/testsession/loadfixture?fixture=<path>`: Loads a fixture into an existing test state.
@@ -59,15 +59,15 @@ While you can use the interface to set the test session state,
 it can be useful to set them programmatically through query parameters
 on "dev/testsession/start":
 
- * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest` 
-   (see [fixture format docs](http://doc.silverstripe.org/en/developer_guides/testing/fixtures/)). 
+ * `fixture`: Loads a YAML fixture in the format generally accepted by `SapphireTest`
+   (see [fixture format docs](http://doc.silverstripe.org/en/developer_guides/testing/fixtures/)).
    The path should be relative to the webroot.
  * `createDatabase`: Create a temporary database.
  * `importDatabasePath`: Absolute path to a database dump to load into a newly created temporary database.
  * `importDatabaseFilename`: File name for a database dump to load, relative to `TestSessionController.database_templates_path`
  * `requireDefaultRecords`: Include default records as defined on the model classes (in PHP)
- * `database`: Set an alternative database name in the current 
-    browser session as a cookie. Does not actually create the database, 
+ * `database`: Set an alternative database name in the current
+    browser session as a cookie. Does not actually create the database,
     that's usually handled by `SapphireTest::create_temp_db()`.
     Note: The database names are limited to a specific naming convention as a security measure:
     The "ss_tmpdb" prefix and a random sequence of seven digits.
@@ -76,9 +76,9 @@ on "dev/testsession/start":
  * `datetime`: Sets a simulated date used for all framework operations.
     Format as "yyyy-MM-dd HH:mm:ss" (Example: "2012-12-31 18:40:59").
  * `globalTestSession`: Activate test session independently of the current browser session,
-    effectively setting the site into test session mode for all users across different browsers. 
-	Only available in "dev" mode. For example, create a global test session in Chrome, then you can share 
-	the session data in Firefox. But if you have started a non-global session in a browser before starting 
+    effectively setting the site into test session mode for all users across different browsers.
+	Only available in "dev" mode. For example, create a global test session in Chrome, then you can share
+	the session data in Firefox. But if you have started a non-global session in a browser before starting
 	a global session somewhere else, that non-global session will take priority in that browser.
 
 Example usage with parameters:
