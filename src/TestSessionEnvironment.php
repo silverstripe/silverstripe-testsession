@@ -545,10 +545,11 @@ class TestSessionEnvironment
 
     /**
      * Ensure that there is a connection to the database
-     * 
+     *
      * @param mixed $state
      */
-    public function connectToDatabase($state = null) {
+    public function connectToDatabase($state = null)
+    {
         if ($state == null) {
             $state = $this->getState();
         }
