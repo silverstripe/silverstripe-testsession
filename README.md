@@ -8,7 +8,7 @@
 *It's completely possible to allow any user to become an admin, or do other nefarious things, if this is installed on a live site.*
 
 This module starts a testing session in a browser,
-in order to test a SilverStripe application in a clean state.
+in order to test a Silverstripe application in a clean state.
 Usually the session is started on a fresh database with only default records loaded.
 Further data can be loaded from YAML fixtures or database dumps.
 
@@ -26,7 +26,7 @@ E.g. the silverstripe-behat-extension may use it through this module APIs,
 allowing us to introduce some grey-box testing techniques.
 
 The module also serves as an initializer for the
-[SilverStripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).
+[Silverstripe Behat Extension](https://github.com/silverstripe-labs/silverstripe-behat-extension/).
 It is required for Behat because the Behat CLI test runner needs to persist
 test configuration just for the tested browser connection,
 available on arbitary URL endpoints. For example,
@@ -35,7 +35,9 @@ into a temporary database table for inspection by the CLI-based process.
 
 ## Setup
 
-	composer require --dev silverstripe/testsession
+Simply require the module in a Silverstripe webroot (3.0 or newer):
+
+	composer require --dev silverstripe/behat-extension
 
 ## Usage
 
