@@ -76,6 +76,15 @@ class TestSessionEnvironment
     private static $test_state_file = 'TESTS_RUNNING.json';
 
     /**
+     * Moves assets to a backup folder when starting the test session and restores them after
+     * Disable this option to leave assets in place
+     *
+     * @config
+     * @var boolean
+     */
+    private static $move_assets = true;
+
+    /**
      * @config
      * @var [type]
      */
@@ -195,6 +204,10 @@ class TestSessionEnvironment
      */
     protected function backupAssets()
     {
+        if (!$this->config()->get('move_assets')) {
+            return;
+        }
+
         // Ensure files backed up to assets dir
         $backupFolder = $this->getAssetsBackupfolder();
         if (!is_dir($backupFolder)) {
@@ -209,6 +222,10 @@ class TestSessionEnvironment
      */
     public function restoreAssets()
     {
+        if (!$this->config()->get('move_assets')) {
+            return;
+        }
+        
         // Ensure files backed up to assets dir
         $backupFolder = $this->getAssetsBackupfolder();
         if (is_dir($backupFolder)) {
