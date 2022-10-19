@@ -4,12 +4,14 @@ namespace SilverStripe\TestSession;
 
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Email;
-use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\Middleware\HTTPMiddleware;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport\NullTransport;
 
 /**
  * Sets state previously initialized through {@link TestSessionController}.
@@ -67,7 +69,12 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
         // Register mailer
         if (isset($testState->mailer)) {
             $mailer = $testState->mailer;
-            Injector::inst()->registerService(new $mailer(), Mailer::class);
+            $dispatcher = Injector::inst()->get(EventDispatcherInterface::class . '.mailer');
+            $transport = new NullTransport($dispatcher);
+            Injector::inst()->registerService(
+                new $mailer($transport, $dispatcher),
+                MailerInterface::class
+            );
             Email::config()->set("send_all_emails_to", null);
             Email::config()->update('admin_email', 'no-reply@example.com');
         }
