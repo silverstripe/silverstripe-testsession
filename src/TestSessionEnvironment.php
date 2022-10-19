@@ -21,6 +21,7 @@ use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Versioned\Versioned;
+use Symfony\Component\Mailer\MailerInterface;
 use stdClass;
 
 /**
@@ -320,15 +321,13 @@ class TestSessionEnvironment
         }
 
         // Mailer
-        $mailer = (isset($state->mailer)) ? $state->mailer : null;
-
-        if ($mailer) {
-            if (!class_exists($mailer ?? '') || !is_subclass_of($mailer, 'SilverStripe\\Control\\Email\\Mailer')) {
-                throw new InvalidArgumentException(sprintf(
-                    'Class "%s" is not a valid class, or subclass of Mailer',
-                    $mailer
-                ));
-            }
+        $mailer = $state->mailer ?? null;
+        if ($mailer && !is_a($mailer, MailerInterface::class, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Class "%s" does not implement %s',
+                $mailer,
+                MailerInterface::class
+            ));
         }
 
         // Date and time
