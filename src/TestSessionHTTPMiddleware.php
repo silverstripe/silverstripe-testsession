@@ -76,7 +76,7 @@ class TestSessionHTTPMiddleware implements HTTPMiddleware
                 MailerInterface::class
             );
             Email::config()->set("send_all_emails_to", null);
-            Email::config()->update('admin_email', 'no-reply@example.com');
+            Email::config()->set('admin_email', 'no-reply@example.com');
         }
 
         // Connect to the test session database
