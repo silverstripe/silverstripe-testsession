@@ -1,7 +1,0 @@
-mappings:
-  TestSessionController: SilverStripe\TestSession\TestSessionController
-  TestSessionEnvironment: SilverStripe\TestSession\TestSessionEnvironment
-  TestSessionRequestFilter: SilverStripe\TestSession\TestSessionHTTPMiddleware
-  TestSessionStubCodeWriter: SilverStripe\TestSession\TestSessionStubCodeWriter
-excludedPaths:
-  - '*/testsession/_config/services.yml'
