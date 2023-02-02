@@ -528,7 +528,10 @@ class TestSessionEnvironment
     public function getState()
     {
         $path = Director::getAbsFile($this->getFilePath());
-        return (file_exists($path ?? '')) ? json_decode(file_get_contents($path)) : new stdClass;
+        if (file_exists($path ?? '')) {
+            return json_decode(file_get_contents($path)) ?: new stdClass;
+        }
+        return new stdClass;
     }
 
     /**
