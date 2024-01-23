@@ -361,7 +361,7 @@ class TestSessionController extends Controller
     }
 
     /**
-     * @return ArrayList
+     * @return ArrayList<ArrayData>
      */
     public function getState()
     {
