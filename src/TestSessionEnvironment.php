@@ -63,7 +63,7 @@ class TestSessionEnvironment
     /**
      * @var string The original database name, before we overrode it with our tmpdb.
      *
-     * Used in {@link self::resetDatabaseName()} when we want to restore the normal DB connection.
+     * Used in {@link TestSessionEnvironment::resetDatabaseName()} when we want to restore the normal DB connection.
      */
     private $oldDatabaseName;
 
@@ -137,14 +137,16 @@ class TestSessionEnvironment
 
     /**
      * Creates a temp database, sets up any extra requirements, and writes the state file. The database will be
-     * connected to as part of {@link self::applyState()}, so if you're continuing script execution after calling this
+     * connected to as part of {@link TestSessionEnvironment::applyState()}, so if you're continuing script
+     * execution after calling this
      * method, be aware that the database will be different - so various things may break (e.g. administrator logins
      * using the SS_DEFAULT_USERNAME / SS_DEFAULT_PASSWORD constants).
      *
      * If something isn't explicitly handled here, and needs special handling, then it should be taken care of by an
      * extension to TestSessionEnvironment. You can either extend onBeforeStartTestSession() or
      * onAfterStartTestSession(). Alternatively, for more fine-grained control, you can also extend
-     * onBeforeApplyState() and onAfterApplyState(). See the {@link self::applyState()} method for more.
+     * onBeforeApplyState() and onAfterApplyState(). See the {@link TestSessionEnvironment::applyState()}
+     * method for more.
      *
      * @param array $state An array of test state options to write.
      * @param mixed $id
@@ -445,7 +447,8 @@ class TestSessionEnvironment
 
     /**
      * Cleans up the test session state by restoring the normal database connect (for the rest of this request, if any)
-     * and removes the {@link self::$test_state_file} so that future requests don't use this test state.
+     * and removes the {@link TestSessionEnvironment::$test_state_file} so that future requests don't use this
+     * test state.
      *
      * Can be extended by implementing either onBeforeEndTestSession() or onAfterEndTestSession().
      *
@@ -514,7 +517,8 @@ class TestSessionEnvironment
     }
 
     /**
-     * Reset the database connection to use the original database. Called by {@link self::endTestSession()}.
+     * Reset the database connection to use the original database.
+     * Called by {@link TestSessionEnvironment::endTestSession()}.
      */
     public function resetDatabaseName()
     {
@@ -532,7 +536,7 @@ class TestSessionEnvironment
     }
 
     /**
-     * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
+     * @return stdClass Data as taken from the JSON object in {@link TestSessionEnvironment::loadFromFile()}
      */
     public function getState()
     {

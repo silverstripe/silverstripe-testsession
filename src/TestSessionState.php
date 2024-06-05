@@ -33,7 +33,7 @@ class TestSessionState extends DataObject
     {
         $schema = DataObject::getSchema();
 
-        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(self::class)))
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(TestSessionState::class)))
             ->addWhere(['ID' => 1])
             ->assignSQL('"PendingRequests"', '"PendingRequests" + 1');
 
@@ -50,10 +50,10 @@ class TestSessionState extends DataObject
     {
         $schema = DataObject::getSchema();
 
-        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(self::class)))
+        $update = SQLUpdate::create(sprintf('"%s"', $schema->tableName(TestSessionState::class)))
                 ->addWhere(['ID' => 1])
                 ->assignSQL('"PendingRequests"', '"PendingRequests" - 1')
-                ->assign('"LastResponseTimestamp"', self::millitime());
+                ->assign('"LastResponseTimestamp"', TestSessionState::millitime());
 
         $update->execute();
     }
