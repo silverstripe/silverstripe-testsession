@@ -326,7 +326,7 @@ class TestSessionController extends Controller
     }
 
     /**
-     * As with {@link self::start()}, if you want to extend the functionality of this, then look at
+     * As with {@link TestSessionController::start()}, if you want to extend the functionality of this, then look at
      * {@link TestSessionEnvironent::endTestSession()} as the extension points have moved to there now that the logic
      * is there.
      */
