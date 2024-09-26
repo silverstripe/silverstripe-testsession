@@ -15,9 +15,10 @@ use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FixtureFactory;
+use SilverStripe\PolyExecution\Command\DbBuild;
+use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Dev\YamlFixture;
 use SilverStripe\ORM\Connect\TempDatabase;
-use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Versioned\Versioned;
@@ -370,9 +371,13 @@ class TestSessionEnvironment
         }
 
         // In case the dump involved CREATE TABLE commands, we need to ensure the schema is still up to date
-        $dbAdmin = new DatabaseAdmin();
+        $dbBuild = new DbBuild();
         Versioned::set_reading_mode('');
-        $dbAdmin->doBuild(true, $requireDefaultRecords);
+        $output = new PolyOutput(
+            Director::is_cli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
+            PolyOutput::VERBOSITY_QUIET
+        );
+        $dbBuild->doBuild($output, $requireDefaultRecords);
     }
 
     /**
@@ -380,9 +385,13 @@ class TestSessionEnvironment
      */
     public function requireDefaultRecords()
     {
-        $dbAdmin = new DatabaseAdmin();
+        $dbBuild = new DbBuild();
         Versioned::set_reading_mode('');
-        $dbAdmin->doBuild(true, true);
+        $output = new PolyOutput(
+            Director::is_cli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
+            PolyOutput::VERBOSITY_QUIET
+        );
+        $dbBuild->doBuild($output, true);
     }
 
     /**
