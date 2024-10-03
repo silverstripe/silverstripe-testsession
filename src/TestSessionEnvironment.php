@@ -272,7 +272,7 @@ class TestSessionEnvironment
         $this->extend('onBeforeApplyState', $state);
 
         // back up source
-        $databaseConfig = DB::getConfig();
+        $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
         $this->oldDatabaseName = $databaseConfig['database'];
 
         // Load existing state from $this->state into $state, if there is any
@@ -523,9 +523,9 @@ class TestSessionEnvironment
     public function resetDatabaseName()
     {
         if ($this->oldDatabaseName) {
-            $databaseConfig = DB::getConfig();
+            $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
             $databaseConfig['database'] = $this->oldDatabaseName;
-            DB::setConfig($databaseConfig);
+            DB::setConfig($databaseConfig, DB::CONN_PRIMARY);
 
             $conn = DB::get_conn();
 
@@ -568,7 +568,7 @@ class TestSessionEnvironment
             $state = $this->getState();
         }
 
-        $databaseConfig = DB::getConfig();
+        $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
 
         if (isset($state->database) && $state->database) {
             if (!DB::get_conn()) {
@@ -579,14 +579,14 @@ class TestSessionEnvironment
                 }
 
                 // Connect to database
-                DB::connect($databaseConfig);
+                $this->connectToDB($databaseConfig);
             } else {
                 // We've already connected to the database, do a fast check to see what database we're currently using
                 $db = DB::get_conn()->getSelectedDatabase();
                 if (isset($state->database) && $db != $state->database) {
                     $this->oldDatabaseName = $databaseConfig['database'];
                     $databaseConfig['database'] = $state->database;
-                    DB::connect($databaseConfig);
+                    $this->connectToDB($databaseConfig);
                 }
             }
         }
@@ -621,5 +621,13 @@ class TestSessionEnvironment
         } while ($pending && (usleep($interval * 1000) || true));
 
         return true;
+    }
+
+    private function connectToDB(array $databaseConfig): void
+    {
+        // Ensure we connect the primary connection and not a replica
+        // which can happen if we use the default value of DB::CONN_DYNAMIC
+        // and there is a replica database configured
+        DB::connect($databaseConfig, DB::CONN_PRIMARY);
     }
 }
