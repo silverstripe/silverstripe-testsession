@@ -12,7 +12,7 @@ TestSessionEnvironment::singleton()->loadFromFile();
  */
 if (class_exists('Resque_Event') && class_exists('SSResqueRun')) {
     Resque_Event::listen('beforeFork', function ($data) {
-        $databaseConfig = DB::getConfig();
+        $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
 
         // Reconnect to the database - this may connect to the old DB first, but is required because these processes
         // are long-lived, and MySQL connections often get closed in between worker runs. We need to connect before

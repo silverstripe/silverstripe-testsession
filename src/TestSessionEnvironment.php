@@ -63,7 +63,7 @@ class TestSessionEnvironment
     /**
      * @var string The original database name, before we overrode it with our tmpdb.
      *
-     * Used in {@link self::resetDatabaseName()} when we want to restore the normal DB connection.
+     * Used in {@link TestSessionEnvironment::resetDatabaseName()} when we want to restore the normal DB connection.
      */
     private $oldDatabaseName;
 
@@ -137,14 +137,16 @@ class TestSessionEnvironment
 
     /**
      * Creates a temp database, sets up any extra requirements, and writes the state file. The database will be
-     * connected to as part of {@link self::applyState()}, so if you're continuing script execution after calling this
+     * connected to as part of {@link TestSessionEnvironment::applyState()}, so if you're continuing script
+     * execution after calling this
      * method, be aware that the database will be different - so various things may break (e.g. administrator logins
      * using the SS_DEFAULT_USERNAME / SS_DEFAULT_PASSWORD constants).
      *
      * If something isn't explicitly handled here, and needs special handling, then it should be taken care of by an
      * extension to TestSessionEnvironment. You can either extend onBeforeStartTestSession() or
      * onAfterStartTestSession(). Alternatively, for more fine-grained control, you can also extend
-     * onBeforeApplyState() and onAfterApplyState(). See the {@link self::applyState()} method for more.
+     * onBeforeApplyState() and onAfterApplyState(). See the {@link TestSessionEnvironment::applyState()}
+     * method for more.
      *
      * @param array $state An array of test state options to write.
      * @param mixed $id
@@ -270,7 +272,7 @@ class TestSessionEnvironment
         $this->extend('onBeforeApplyState', $state);
 
         // back up source
-        $databaseConfig = DB::getConfig();
+        $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
         $this->oldDatabaseName = $databaseConfig['database'];
 
         // Load existing state from $this->state into $state, if there is any
@@ -445,7 +447,8 @@ class TestSessionEnvironment
 
     /**
      * Cleans up the test session state by restoring the normal database connect (for the rest of this request, if any)
-     * and removes the {@link self::$test_state_file} so that future requests don't use this test state.
+     * and removes the {@link TestSessionEnvironment::$test_state_file} so that future requests don't use this
+     * test state.
      *
      * Can be extended by implementing either onBeforeEndTestSession() or onAfterEndTestSession().
      *
@@ -514,14 +517,15 @@ class TestSessionEnvironment
     }
 
     /**
-     * Reset the database connection to use the original database. Called by {@link self::endTestSession()}.
+     * Reset the database connection to use the original database.
+     * Called by {@link TestSessionEnvironment::endTestSession()}.
      */
     public function resetDatabaseName()
     {
         if ($this->oldDatabaseName) {
-            $databaseConfig = DB::getConfig();
+            $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
             $databaseConfig['database'] = $this->oldDatabaseName;
-            DB::setConfig($databaseConfig);
+            DB::setConfig($databaseConfig, DB::CONN_PRIMARY);
 
             $conn = DB::get_conn();
 
@@ -532,7 +536,7 @@ class TestSessionEnvironment
     }
 
     /**
-     * @return stdClass Data as taken from the JSON object in {@link self::loadFromFile()}
+     * @return stdClass Data as taken from the JSON object in {@link TestSessionEnvironment::loadFromFile()}
      */
     public function getState()
     {
@@ -564,7 +568,7 @@ class TestSessionEnvironment
             $state = $this->getState();
         }
 
-        $databaseConfig = DB::getConfig();
+        $databaseConfig = DB::getConfig(DB::CONN_PRIMARY);
 
         if (isset($state->database) && $state->database) {
             if (!DB::get_conn()) {
@@ -575,14 +579,14 @@ class TestSessionEnvironment
                 }
 
                 // Connect to database
-                DB::connect($databaseConfig);
+                $this->connectToDB($databaseConfig);
             } else {
                 // We've already connected to the database, do a fast check to see what database we're currently using
                 $db = DB::get_conn()->getSelectedDatabase();
                 if (isset($state->database) && $db != $state->database) {
                     $this->oldDatabaseName = $databaseConfig['database'];
                     $databaseConfig['database'] = $state->database;
-                    DB::connect($databaseConfig);
+                    $this->connectToDB($databaseConfig);
                 }
             }
         }
@@ -617,5 +621,13 @@ class TestSessionEnvironment
         } while ($pending && (usleep($interval * 1000) || true));
 
         return true;
+    }
+
+    private function connectToDB(array $databaseConfig): void
+    {
+        // Ensure we connect the primary connection and not a replica
+        // which can happen if we use the default value of DB::CONN_DYNAMIC
+        // and there is a replica database configured
+        DB::connect($databaseConfig, DB::CONN_PRIMARY);
     }
 }
