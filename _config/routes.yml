@@ -2,6 +2,7 @@
 Name: testsessionroutes
 ---
 SilverStripe\Dev\DevelopmentAdmin:
-  registered_controllers:
+  controllers:
     testsession:
-      controller: SilverStripe\TestSession\TestSessionController
+      class: 'SilverStripe\TestSession\TestSessionController'
+      description: 'Create a test session'
