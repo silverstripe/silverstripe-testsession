@@ -376,7 +376,7 @@ class TestSessionEnvironment
         $dbBuild = new DbBuild();
         Versioned::set_reading_mode('');
         $output = new PolyOutput(
-            Director::is_cli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
+            Environment::isCli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
             PolyOutput::VERBOSITY_QUIET
         );
         $dbBuild->doBuild($output, $requireDefaultRecords);
@@ -390,7 +390,7 @@ class TestSessionEnvironment
         $dbBuild = new DbBuild();
         Versioned::set_reading_mode('');
         $output = new PolyOutput(
-            Director::is_cli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
+            Environment::isCli() ? PolyOutput::FORMAT_ANSI : PolyOutput::FORMAT_HTML,
             PolyOutput::VERBOSITY_QUIET
         );
         $dbBuild->doBuild($output, true);

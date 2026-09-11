@@ -7,6 +7,7 @@ use LogicException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DatetimeField;
@@ -71,7 +72,7 @@ class TestSessionController extends Controller
 
         $canAccess = (
             !Director::isLive()
-            && (Director::isDev() || Director::isTest() || Director::is_cli() || Permission::check("ADMIN"))
+            && (Director::isDev() || Director::isTest() || Environment::isCli() || Permission::check("ADMIN"))
         );
         if (!$canAccess) {
             Security::permissionFailure($this);
