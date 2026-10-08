@@ -409,9 +409,13 @@ class TestSessionEnvironment
         } else {
             $content = json_encode($state);
         }
+        $path = $this->getFilePath() ?? '';
+        // getState() reads without a lock during concurrent requests, so replace the file atomically
+        $tempPath = $path . '.' . bin2hex(random_bytes(8)) . '.tmp';
         $old = umask(0);
-        file_put_contents($this->getFilePath() ?? '', $content, LOCK_EX);
+        file_put_contents($tempPath, $content);
         umask($old);
+        rename($tempPath, $path);
     }
 
     public function loadFromFile()
